@@ -48,8 +48,12 @@
       for (const sp of rows) {
         const row = document.createElement('div');
         row.className = 'sp' + (sp.pop === 0 ? ' gone' : '') + (this.selSpecies === sp ? ' sel' : '');
+        const mark = (sp.strains && sp.strains.length) ? '<i class="star">*</i>' : '';
         row.innerHTML = '<i class="dot" style="background:' + sp.color + '"></i>' +
-                        '<span class="nm"></span><span class="pp"></span>';
+                        '<span class="nm"></span>' + mark + '<span class="pp"></span>';
+        row.title = sp.strains && sp.strains.length
+          ? sp.strains.map(function (id) { return global.Strains.BY_ID[id].name; }).join(', ')
+          : sp.plural();
         row.querySelector('.nm').textContent = sp.plural();
         row.querySelector('.pp').textContent = sp.pop === 0 ? '\u2014' : sp.pop;
         row.onclick = function () { UI.selectSpecies(sp); };
@@ -93,6 +97,7 @@
       h += kv('Upkeep', d.upkeep.toFixed(1) + ' food/yr');
       h += kv('Speed', d.speed.toFixed(1));
       h += kv('State', c.dormant ? 'dormant' : c.asleep ? 'asleep' : c.age < d.maturity ? 'juvenile' : 'active');
+      h += strainBlocks(d.strains, d.flaws);
       h += '<div class="sub">Traits ' + d.traits.length + ' / ' + global.Genome.SLOTS + '</div>';
       h += traitBlocks(d.traits);
       if (!d.traits.length) h += '<div class="trait"><div class="td">Nothing yet. Plain stock.</div></div>';
@@ -106,8 +111,20 @@
       h += kv('Population', sp.pop + (sp.extinct !== null ? ' (extinct yr ' + sp.extinct + ')' : ''));
       h += kv('Peak', sp.peakPop);
       h += kv('Founded', 'year ' + sp.founded);
+      if (sp.parent) {
+        h += '<div class="lineage">Split from the <b>' + esc(sp.parent.plural()) + '</b> in year ' +
+             sp.founded + (sp.foundedBy ? ', after the ' + esc(sp.foundedBy.toLowerCase()) : '') + '.</div>';
+      }
+      if (sp.children && sp.children.length) {
+        h += '<div class="lineage">Gave rise to ' +
+             sp.children.map(function (k) { return '<b>' + esc(k.plural()) + '</b>'; }).join(', ') + '.</div>';
+      }
       h += kv('Generations', sp.generations);
       h += kv('Born / died', sp.born + ' / ' + sp.died);
+      if (sp.pop > 0 && sp.strains && sp.strains.length) {
+        h += '<div class="sub">Strains</div>';
+        h += strainBlocks(sp.strains.map(function (id) { return global.Strains.BY_ID[id]; }), []);
+      }
       if (sp.pop > 0) {
         h += '<div class="sub">Traits carried</div>';
         const rows = [];
@@ -195,6 +212,21 @@
     });
   }
   function kv(k, v) { return '<div class="kv"><span>' + esc(k) + '</span><b>' + v + '</b></div>'; }
+  function strainBlocks(strains, flaws) {
+    let h = '';
+    for (const s of strains || []) {
+      if (!s) continue;
+      h += '<div class="strain"><div class="tn">' + esc(s.name) + '<em>strain</em></div>' +
+           '<div class="td">' + esc(s.desc) + '</div></div>';
+    }
+    for (const s of flaws || []) {
+      if (!s) continue;
+      h += '<div class="flaw"><div class="tn">' + esc(s.name) + '<em>flaw</em></div>' +
+           '<div class="td">' + esc(s.desc) + '</div></div>';
+    }
+    return h;
+  }
+
   function traitBlocks(traits) {
     let h = '';
     for (const t of traits) {

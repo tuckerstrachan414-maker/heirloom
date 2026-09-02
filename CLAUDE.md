@@ -29,6 +29,7 @@ automated checks go through HTTP.
     css/style.css       all styling
     js/rng.js           seeded RNG (mulberry32)
     js/data-traits.js   THE TRAIT REGISTRY - 26 rows
+    js/data-strains.js  THE STRAIN REGISTRY - 12 synergies + 6 flaws
     js/data-biomes.js   biome table
     js/data-disasters.js THE DISASTER REGISTRY
     js/world.js         tiles, terrain generation, food, fire, climate
@@ -56,7 +57,8 @@ automated checks go through HTTP.
    sim code, or seeds stop reproducing. The one deliberate exception is the
    cosmetic screen-shake jitter in `render.js`.
 3. **Adding a trait = appending one row to `TRAITS`.** Nothing else should need
-   to know it exists. Same for `DISASTERS`.
+   to know it exists. Same for `DISASTERS` and `STRAINS` (which holds both
+   synergies and anti-synergies: `need` plus optional `without`).
 4. **Disasters change the world; creatures die from the tile they stand on.**
    A disaster must never check for a trait by name. This is why a wildfire
    selects for Ashlung without anything anywhere mentioning Ashlung.
@@ -82,13 +84,21 @@ automated checks go through HTTP.
     breedAt/Cost   0.62/0.34 fraction of energy reserve to breed / to spend
     eatRate        1.55      how much over upkeep a creature tries to take
     deplete        0.55      how hard grazing strips a tile
-    checkpoint     1         which disaster rows the UI offers
+    checkpoint     2         which disaster rows the UI offers
+    mateChoosiness 9         weight on genome similarity when picking a mate.
+                             LOAD-BEARING: without it a novel combination is
+                             halved every generation by mating back into the
+                             majority, no cluster grows, and nothing speciates.
 
     HAZ            per-year death rates by hazard. Applied as rate*dt, so keep
                    rate*dt well under 1 or the linear form overstates the odds.
     RANGE   (20)   home-range radius. A species that spreads evenly over the map
                    can never be caught by one disaster and nothing dramatic ever
                    happens. This number is load-bearing.
+
+`SplitConfig` in `js/sim.js` governs speciation: `minDist` traits away from the
+species norm, `minGroup` creatures holding that genome, sustained `years` years,
+from a parent of at least `minParent`.
 
 `js/world.js`: `FIRE_FALL` / `FIRE_MIN` bound how far a fire carries. A fire
 front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
@@ -99,6 +109,7 @@ front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
     node tools/headless.js <seed> <years> <fireEvery>   # population, traits, log
     node tools/firetest.js <seed> <every> <years> aimed # does fire select for Ashlung?
     node tools/profile.js  <seed> <years>               # per-phase timing
+    node tools/splittest.js <seed> <years> <fireEvery>  # why is nothing speciating?
 
 Then in a browser: `node tools/serve.js` and open
 <http://localhost:4173/tools/selftest.html>. It prints errors, canvas colour

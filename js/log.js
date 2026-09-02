@@ -176,6 +176,36 @@
     this.quiet = 0;
   };
 
+  function listOf(a) {
+    if (a.length === 1) return a[0];
+    if (a.length === 2) return a[0] + ' and ' + a[1];
+    return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  }
+
+  // A split is the loudest thing that can happen without a disaster.
+  Narrator.prototype.split = function (child, parent, n) {
+    const y = Math.floor(this.sim.year);
+    const gained = T.listOf(child.coreMask & ~parent.coreMask).map(function (t) { return t.name; });
+    const lost = T.listOf(parent.coreMask & ~child.coreMask).map(function (t) { return t.name; });
+    let line = 'The ' + child.plural() + ' have split from the ' + parent.plural() + '.';
+    if (gained.length) line += ' They carry ' + listOf(gained.slice(0, 3)) + '.';
+    else if (lost.length) line += ' They have lost ' + listOf(lost.slice(0, 2)) + '.';
+    this.log.say(this.stamp(y) + line, 'split', y);
+    if (child.foundedBy) {
+      this.log.say('It started with the ' + child.foundedBy.toLowerCase() + '.', 'plain', y);
+    }
+    this.memo(child).lastPop = child.pop;
+    this.quiet = 0;
+  };
+
+  // Finding a strain should read like finding a secret.
+  Narrator.prototype.strain = function (s, c) {
+    const y = Math.floor(this.sim.year);
+    this.log.say(this.stamp(y) + 'Something new among the ' + c.sp.plural() + ': ' + s.name + '.', 'split', y);
+    this.log.say(s.desc, 'life', y);
+    this.quiet = 0;
+  };
+
   const IDLE = ['The world is quiet.',
                 'Nothing much happens for a while.',
                 'Grass returns to the burnt ground.',

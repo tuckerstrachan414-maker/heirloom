@@ -156,23 +156,34 @@
     let s = this.sprites.get(key);
     if (s) return s;
 
-    const traits = T.listOf(mask);
+    const d = global.Genome.derive(mask);
+    const traits = d.traits;
     let body = parseColor(sp.color);
     let bulk = 1, alpha = 1, dark = 0;
 
     for (const t of traits) {
       const p = t.paint;
-      if (p.tint) body = mix(body, parseColor(p.tint), 0.42);
+      if (p.tint) body = mix(body, parseColor(p.tint), 0.28);
       if (p.bulk) bulk *= p.bulk;
       if (p.alpha) alpha *= p.alpha;
       if (p.dark) dark = 1;
+    }
+    // A strain shifts the colour hard enough to pick out on the map; a flaw
+    // drains it, so the doomed branches are visible at a glance.
+    for (const s of d.strains) if (s.tint) body = mix(body, parseColor(s.tint), 0.38);
+    if (d.flaws.length) {
+      const grey = Math.round((body[0] + body[1] + body[2]) / 3);
+      body = mix(body, [grey, grey, grey], 0.55);
     }
 
     const cv = document.createElement('canvas');
     cv.width = S; cv.height = S;
     const g = cv.getContext('2d');
-    const belly = mix(body, [20, 14, 10], 0.30);
-    const top = mix(body, [255, 244, 214], 0.22);
+    // Species colour has to stay legible at four pixels across, so traits
+    // shade it rather than replace it.
+    body = mix(body, parseColor(sp.color), 0.30);
+    const belly = mix(body, [20, 14, 10], 0.26);
+    const top = mix(body, [255, 244, 214], 0.13);
 
     // body
     for (let r = 0; r < S; r++) {
@@ -223,6 +234,11 @@
       g.fillRect(4, 3, 1, 1); g.fillRect(7, 3, 1, 1);
     }
 
+    if (d.strains.length) {
+      // a bright pip so a strain reads even at one or two pixels
+      g.fillStyle = 'rgba(255,238,190,0.9)';
+      g.fillRect(5, 5, 2, 1);
+    }
     s = { cv: cv, bulk: bulk, alpha: alpha, flat: rgb(body) };
     this.sprites.set(key, s);
     return s;

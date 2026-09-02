@@ -39,7 +39,7 @@
 
   Species.prototype.recolour = function () {
     const h = ((this.hue % 360) + 360) % 360;
-    this.color = hsl(h, this.sickly ? 22 : 58, this.sickly ? 44 : 62);
+    this.color = hsl(h, this.sickly ? 22 : 66, this.sickly ? 44 : 60);
     this.dark = hsl(h, this.sickly ? 20 : 52, 30);
     this.light = hsl(h, this.sickly ? 26 : 66, 78);
   };

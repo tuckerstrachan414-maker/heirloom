@@ -8,7 +8,7 @@ win.document = { createElement: function () { return { getContext: function () {
 win.performance = { now: function () { return Date.now(); } };
 const ctx = vm.createContext(win);
 
-for (const f of ['rng', 'data-traits', 'data-biomes', 'data-disasters',
+for (const f of ['rng', 'data-traits', 'data-strains', 'data-biomes', 'data-disasters',
                  'world', 'creature', 'species', 'sim', 'log']) {
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8');
   vm.runInContext(src, ctx, { filename: f + '.js' });
@@ -60,6 +60,13 @@ console.log('=== HEIRLOOM headless: seed "' + seed + '", ' + YEARS + ' yr, fire 
 console.log('perf      : ' + ticks + ' ticks in ' + ms + 'ms  (' + (ticks / (ms / 1000)).toFixed(0) + ' ticks/s)');
 console.log('alive     : ' + sim.aliveCount + '   born ' + sim.stats.born + '   died ' + sim.stats.died);
 console.log('deaths    : ' + JSON.stringify(sim.stats));
+const liveC = sim.creatures.filter(c => c.alive);
+const tc = liveC.map(c => c.d.traits.length);
+const hist = {}; tc.forEach(n => hist[n] = (hist[n]||0)+1);
+console.log('traits/ea : avg ' + (tc.reduce((a,b)=>a+b,0)/Math.max(1,tc.length)).toFixed(2) +
+  '   spread ' + Object.keys(hist).sort().map(k => k+':'+hist[k]).join(' '));
+console.log('upkeep    : avg ' + (liveC.reduce((a,c)=>a+c.d.upkeep,0)/Math.max(1,liveC.length)).toFixed(2));
+console.log('strains   : ' + (sim.discovered.size ? [...sim.discovered].join(', ') : 'none discovered'));
 console.log('genomes   : ' + new Set(sim.creatures.filter(c => c.alive).map(c => c.mask)).size + ' distinct');
 let pc = '';
 for (let i = 0; i < curve.length; i += 2) pc += curve[i] + ':' + curve[i + 1] + ' ';

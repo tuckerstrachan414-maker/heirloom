@@ -11,7 +11,7 @@
 
   const BASE = {
     speed: 2.6,        // tiles per year
-    upkeep: 3.0,       // food per year just to stay alive
+    upkeep: 2.2,       // food per year just to stay alive
     lifespan: 22,
     maturity: 4,
     fertility: 1,
@@ -85,6 +85,33 @@
       }
     }
 
+    // Strains and flaws: named combinations applied on top of the traits.
+    // Nothing else in the sim knows these exist - see data-strains.js.
+    d.strains = []; d.flaws = [];
+    let upkeepAdd = 0, sunFoodMul = 1;
+    for (const s of global.Strains.matches(mask)) {
+      (s.kind === 'flaw' ? d.flaws : d.strains).push(s);
+      const m = s.mods;
+      if (m.speed !== undefined) d.speed *= m.speed;
+      if (m.lifespan !== undefined) d.lifespan *= m.lifespan;
+      if (m.fertility !== undefined) d.fertility *= m.fertility;
+      if (m.forage !== undefined) d.forage *= m.forage;
+      if (m.mateRange !== undefined) d.mateRange *= m.mateRange;
+      if (m.mutate !== undefined) d.mutate *= m.mutate;
+      if (m.litter !== undefined) d.litter += m.litter;
+      if (m.coldTol !== undefined) d.coldTol += m.coldTol;
+      if (m.heatTol !== undefined) d.heatTol += m.heatTol;
+      if (m.armour !== undefined) d.armour += m.armour;
+      for (const k of FOOD_KEYS) if (m[k] !== undefined) d[k] += m[k];
+      if (m.upkeepAdd !== undefined) upkeepAdd += m.upkeepAdd;
+      if (m.sunFoodMul !== undefined) sunFoodMul *= m.sunFoodMul;
+      for (const kind in s.resist) {
+        remain[kind] = (remain[kind] === undefined ? 1 : remain[kind]) * (1 - s.resist[kind]);
+      }
+    }
+    d.sunFood *= sunFoodMul;
+    d.sickly = d.flaws.length > 0;
+
     // Nothing is ever fully immune. A disaster must always be able to kill you.
     for (const kind in remain) {
       d.resist[kind] = Math.max(-3, Math.min(0.97, 1 - remain[kind]));
@@ -101,7 +128,7 @@
     d.tempLo = 0.20 - d.coldTol;
     d.tempHi = 0.90 + d.heatTol;
 
-    d.upkeep = BASE.upkeep + d.traitCost;
+    d.upkeep = BASE.upkeep + d.traitCost + upkeepAdd;
     d.litter = Math.max(1, Math.round(d.litter));
     d.maturity = Math.max(0.8, d.maturity);
     if (d.rooted) d.speed = 0;

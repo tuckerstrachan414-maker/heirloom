@@ -137,3 +137,20 @@ button.ghost:hover{color:var(--ink)}
   .stat i{display:none}
   .brand{letter-spacing:.18em}
 }
+
+/* ---- strains, flaws, lineage ---- */
+.strain{padding:7px 9px;margin:6px 0;border-radius:0 4px 4px 0;
+  background:linear-gradient(90deg,rgba(217,164,65,0.22),rgba(217,164,65,0.06));
+  border-left:2px solid var(--gold)}
+.strain .tn{font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;color:#f0dda8}
+.strain .tn em{font-style:normal;color:var(--gold);font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+.strain .td{color:#c8bda4;font-size:11px;line-height:1.4;margin-top:3px}
+.flaw{padding:7px 9px;margin:6px 0;border-radius:0 4px 4px 0;
+  background:rgba(120,80,70,0.20);border-left:2px solid #a86048}
+.flaw .tn{font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;color:#e0a48c}
+.flaw .tn em{font-style:normal;color:#a86048;font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+.flaw .td{color:#bda79c;font-size:11px;line-height:1.4;margin-top:3px}
+.lineage{font-size:11px;line-height:1.45;color:var(--muted);margin:6px 0 2px;
+  padding-left:8px;border-left:1px solid rgba(217,164,65,0.28)}
+.lineage b{color:var(--ink);font-weight:500}
+.sp .star{font-style:normal;color:var(--gold);font-size:13px;line-height:1;margin:0 3px 0 -2px}

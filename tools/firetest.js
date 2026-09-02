@@ -5,7 +5,7 @@ const win={};win.window=win;
 win.document={createElement:function(){return {getContext:function(){return{};}};}};
 win.performance={now:function(){return Date.now();}};
 const ctx=vm.createContext(win);
-for(const f of ['rng','data-traits','data-biomes','data-disasters','world','creature','species','sim','log'])
+for(const f of ['rng','data-traits','data-strains','data-biomes','data-disasters','world','creature','species','sim','log'])
   vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js',f+'.js'),'utf8'),ctx,{filename:f+'.js'});
 
 const seed=process.argv[2]||'test-1', EVERY=Number(process.argv[3]||25), YEARS=Number(process.argv[4]||260);

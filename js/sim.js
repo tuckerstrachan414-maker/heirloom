@@ -19,9 +19,10 @@
     breedAt: 0.62,       // fraction of energy reserve needed to breed
     breedCost: 0.34,
     breedCool: 1.6,      // years between litters
-    eatRate: 1.55,       // how much more than upkeep a creature tries to take
-    deplete: 0.55,       // how hard grazing strips a tile
-    checkpoint: 1
+    mateChoosiness: 9,   // weight on genome similarity when picking a mate
+    eatRate: 1.40,       // how much more than upkeep a creature tries to take
+    deplete: 0.32,       // how hard grazing strips a tile
+    checkpoint: 2
   };
 
   // Rates are per year and applied as rate*dt, so keep rate*dt well under 1
@@ -35,7 +36,9 @@
     this.creatures = [];
     this.species = [];
     this.namesTaken = new Set();
-    this.pool = opts.pool || T.STARTER_POOL.slice();
+    // Checkpoint 2 opens the whole registry. Pass opts.pool to narrow it.
+    this.pool = opts.pool || T.ALL.map(function (t) { return t.id; });
+    this.discovered = new Set();
     this.log = opts.log;
     this.year = 0;
     this.lastYearMark = 0;
@@ -403,7 +406,7 @@
     } else {
       const near = this.nearby(c, scratch);
       const r2 = d.mateRange * d.mateRange;
-      let bestD = Infinity;
+      let bestScore = Infinity;
       // Below a handful, the last of a kind will take whoever is left.
       const desperate = c.sp.pop <= 8;
       for (let k = 0; k < near.length; k++) {
@@ -413,7 +416,13 @@
         if (o.age < o.d.maturity || o.cool > 0 || o.dormant || o.asleep) continue;
         if (o.energy < o.d.reserve * CFG.breedAt * 0.8) continue;
         const dx = o.x - c.x, dy = o.y - c.y, dd = dx * dx + dy * dy;
-        if (dd < r2 && dd < bestD) { bestD = dd; mate = o; }
+        if (dd >= r2) continue;
+        // Like breeds with like. Without this preference a novel combination
+        // is halved every generation by mating back into the majority, no
+        // cluster ever grows, and nothing ever speciates.
+        const gd = desperate ? 0 : T.popcount(o.mask ^ c.mask);
+        const score = dd + gd * gd * CFG.mateChoosiness;
+        if (score < bestScore) { bestScore = score; mate = o; }
       }
     }
     if (!mate) return;
@@ -447,6 +456,12 @@
       child.cool = child.d.maturity;
       this.stats.born++; this.yearStats.born++;
       if (mask !== a.mask && mask !== m.mask) this.newGenomes++;
+      for (const s of child.d.strains) {
+        if (!this.discovered.has(s.id)) {
+          this.discovered.add(s.id);
+          if (this.onStrain) this.onStrain(s, child);
+        }
+      }
     }
     this.births.length = 0;
   };
@@ -510,6 +525,20 @@
         sp.extinct = Math.floor(this.year);
         if (this.onExtinct) this.onExtinct(sp);
       }
+      // Which strains and flaws the species as a whole is running.
+      const sc = Object.create(null);
+      let flawed = 0;
+      if (sp.pop > 0) {
+        for (const c of this.creatures) {
+          if (!c.alive || c.sp !== sp) continue;
+          for (const s of c.d.strains) sc[s.id] = (sc[s.id] || 0) + 1;
+          if (c.d.flaws.length) flawed++;
+        }
+      }
+      sp.strains = Object.keys(sc).filter(function (k) { return sc[k] / sp.pop > 0.5; });
+      const sick = sp.pop > 0 && flawed / sp.pop > 0.5;
+      if (sick !== sp.sickly) { sp.sickly = sick; sp.recolour(); }
+
       // The species' "normal": what a clear majority of it carries.
       let core = 0;
       if (sp.pop > 0) {
@@ -518,6 +547,7 @@
         }
       }
       sp.coreMask = core;
+      if (sp.pop > 0) this.checkSplit(sp);
     }
   };
 
@@ -538,12 +568,77 @@
     const before = this.aliveCount;
     const line = d.trigger(this, opts || {});
     if (line) {
+      this.lastDisaster = { id: d.id, name: d.name, year: Math.floor(this.year) };
       this.pending = { disaster: d, year: Math.floor(this.year), popBefore: before };
       if (this.onDisaster) this.onDisaster(d, line);
     }
     return line;
   };
 
+  // ---- speciation -------------------------------------------------------
+  // A group drifts far enough from its parent's normal, holds that way for a
+  // few years, and becomes its own species. This is the moment the world stops
+  // being the player's and starts being its own.
+  const SPLIT = { minDist: 3, minGroup: 8, minParent: 28, years: 6, maxSpecies: 10 };
+
+  Sim.prototype.checkSplit = function (sp) {
+    if (sp.pop < SPLIT.minParent || this.livingSpecies().length >= SPLIT.maxSpecies) {
+      sp.pendingSplit = null; return;
+    }
+    // Bucket everyone who is at least minDist traits away from the norm.
+    const counts = new Map();
+    for (const c of this.creatures) {
+      if (!c.alive || c.sp !== sp) continue;
+      if (T.popcount(c.mask ^ sp.coreMask) < SPLIT.minDist) continue;
+      counts.set(c.mask, (counts.get(c.mask) || 0) + 1);
+    }
+    if (!counts.size) { sp.pendingSplit = null; return; }
+
+    let seed = 0, best = 0;
+    counts.forEach(function (n, m) { if (n > best) { best = n; seed = m; } });
+
+    // Count everyone within one trait of that genome - mutation keeps genomes
+    // from ever matching exactly, so an exact-match test would never fire.
+    let group = 0;
+    counts.forEach(function (n, m) { if (T.popcount(m ^ seed) <= 1) group += n; });
+    if (group < SPLIT.minGroup) { sp.pendingSplit = null; return; }
+
+    const y = Math.floor(this.year);
+    if (!sp.pendingSplit || T.popcount(sp.pendingSplit.seed ^ seed) > 1) {
+      sp.pendingSplit = { seed: seed, since: y };
+      return;
+    }
+    sp.pendingSplit.seed = seed;
+    if (y - sp.pendingSplit.since >= SPLIT.years) this.split(sp, seed);
+  };
+
+  Sim.prototype.split = function (parent, seed) {
+    const child = new SP.Species({
+      name: SP.nameFor(seed, this.rng, this.namesTaken),
+      hue: SP.hueFor(seed, this.rng, parent.hue),
+      coreMask: seed,
+      parent: parent,
+      founded: Math.floor(this.year),
+      foundedBy: this.lastDisaster ? this.lastDisaster.name : null
+    });
+    this.species.push(child);
+
+    let moved = 0, mx = 0, my = 0;
+    for (const c of this.creatures) {
+      if (!c.alive || c.sp !== parent) continue;
+      if (T.popcount(c.mask ^ seed) > 1) continue;
+      parent.pop--; c.sp = child; child.pop++; child.born++;
+      mx += c.x; my += c.y; moved++;
+    }
+    parent.pendingSplit = null;
+    child.peakPop = child.pop;
+    child.generations = parent.generations;
+    if (moved) { child.cx = mx / moved; child.cy = my / moved; }
+    if (this.onSplit) this.onSplit(child, parent, moved);
+    return child;
+  };
+
   global.Sim = Sim;
   global.SimConfig = CFG;
+  global.SplitConfig = SPLIT;
 })(window);

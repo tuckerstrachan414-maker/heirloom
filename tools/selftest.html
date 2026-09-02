@@ -22,6 +22,7 @@ window.addEventListener('unhandledrejection', function(e){ window.__errors.push(
 </script>
 <script src="../js/rng.js"></script>
 <script src="../js/data-traits.js"></script>
+<script src="../js/data-strains.js"></script>
 <script src="../js/data-biomes.js"></script>
 <script src="../js/data-disasters.js"></script>
 <script src="../js/world.js"></script>
@@ -57,11 +58,27 @@ setTimeout(function(){
   step('sprites     ',function(){return R.sprites.size+' baked from genomes';});
   step('ui          ',function(){return document.getElementById('speciesList').children.length+' species rows, '+document.getElementById('disasters').children.length+' disaster buttons';});
   step('log         ',function(){return G.log.lines.length+' lines';});
-  step('120y by hand',function(){
-    var t0=performance.now(); for(var i=0;i<24*120;i++) S.tick(1/24);
+  step('300y by hand',function(){
+    var t0=performance.now();
+    for(var i=0;i<24*300;i++){ S.tick(1/24); if(i%(24*35)===0&&i) G.fire('wildfire',{}); }
     var ms=performance.now()-t0;
-    return 'year '+S.year.toFixed(0)+'  alive '+S.aliveCount+'  born '+S.stats.born+'  ('+(24*120/(ms/1000)).toFixed(0)+' ticks/s in-browser)';
+    return 'year '+S.year.toFixed(0)+'  alive '+S.aliveCount+'  born '+S.stats.born+'  ('+(24*300/(ms/1000)).toFixed(0)+' ticks/s in-browser)';
   });
+  step('speciation  ',function(){
+    var kids=S.species.filter(function(s){return s.parent;});
+    return S.species.length+' species ever, '+kids.length+' from splits, '+S.livingSpecies().length+' alive'+
+      (kids.length?'  ('+kids.map(function(k){return k.plural()+' from '+k.parent.plural()+' y'+k.founded;}).join('; ')+')':'');
+  });
+  step('strains     ',function(){
+    return S.discovered.size+' discovered: '+(S.discovered.size?Array.from(S.discovered).join(', '):'none');
+  });
+  step('genomes     ',function(){
+    var m={},n=0,tt=0,live=0;
+    S.creatures.forEach(function(c){if(c.alive){m[c.mask]=1;tt+=c.d.traits.length;live++;}});
+    for(var k in m)n++;
+    return n+' distinct, avg '+(tt/Math.max(1,live)).toFixed(2)+' traits each';
+  });
+  step('sprite cache',function(){R.draw();return R.sprites.size+' baked';});
   var before=0;
   step('set a fire  ',function(){
     before=S.aliveCount;

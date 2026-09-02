@@ -177,6 +177,13 @@
     return bi.sun * this.climate.sun * (1 - this.ash[i] * 0.75) * this.dayLight;
   };
 
+  // Light averaged over a whole day. Plants grow across days, so regrowth uses
+  // this; photosynthetic creatures eat the instantaneous value above.
+  World.prototype.growLightAt = function (i) {
+    const bi = BIOMES[this.biome[i]];
+    return bi.sun * this.climate.sun * (1 - this.ash[i] * 0.75);
+  };
+
   // Food actually available to a forager standing here.
   World.prototype.foodAt = function (i) {
     const bi = BIOMES[this.biome[i]];
@@ -264,7 +271,7 @@
       const bi = BIOMES[this.biome[i]];
 
       if (this.burn[i] <= 0 && bi.regrow > 0) {
-        const light = 0.35 + this.lightAt(i) * 0.65;
+        const light = 0.35 + this.growLightAt(i) * 0.65;
         this.food[i] = Math.min(1, this.food[i] + bi.regrow * light * (n / slice) * dt * 1.2);
       }
       if (this.ash[i] > 0) this.ash[i] = Math.max(0, this.ash[i] - 0.030 * (n / slice) * dt);

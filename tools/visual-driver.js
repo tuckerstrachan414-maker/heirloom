@@ -5,7 +5,11 @@
     var G = window.Game, S = G && G.sim;
     if (!S) { setTimeout(run, 300); return; }
     var years = Number((location.hash.match(/y=(\d+)/) || [])[1] || 90);
-    for (var i = 0; i < 24 * years; i++) S.tick(1 / 24);
+    var every = Number((location.hash.match(/every=([0-9]+)/) || [])[1] || 0);
+    for (var i = 0; i < 24 * years; i++) {
+      S.tick(1 / 24);
+      if (every && i % (24 * every) === 0 && i) G.fire('wildfire', {});
+    }
     S.census();
     if (/fire/.test(location.hash)) {
       var sp = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; })[0];
@@ -16,6 +20,11 @@
     if (/zoom/.test(location.hash)) {
       var s2 = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; })[0];
       if (s2) { G.renderer.cam.x = s2.cx; G.renderer.cam.y = s2.cy; G.renderer.cam.z = 26; G.renderer.clamp(); }
+    }
+    if (/inspect/.test(location.hash)) {
+      var pick = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; });
+      var withStrain = pick.filter(function (s) { return s.strains && s.strains.length; });
+      window.UI.selectSpecies(withStrain[0] || pick[0]);
     }
     G.setSpeed(/pause/.test(location.hash) ? 0 : 1);
     window.__ready = true;

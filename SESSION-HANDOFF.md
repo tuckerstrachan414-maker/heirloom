@@ -103,3 +103,73 @@ All 26 traits live, richer trait-driven sprites, species splitting with
 trait-derived names and colours, and the family tree. `Sim.census()` already
 computes each species' `coreMask` (traits held by >60% of members), which is
 the hook speciation should hang off.
+
+## 2026-09-02 - Checkpoint 2: all traits, strains, and speciation
+
+**Outcome: species now split off on their own and name themselves.** A run
+routinely ends with three or four species that have real genetic identities -
+one at 91% Ashlung and 96% Parthenogenesis, another at 96% Photosynthetic Skin.
+
+### What was built
+
+- All 26 traits are now in the mutation pool (checkpoint 1 used only 8).
+- `js/data-strains.js`: 12 named strains and 6 flaws. One table holds both -
+  a row fires when a creature has every trait in `need` and none in `without`,
+  which also lets a row describe a trap (Warning Colours with no poison behind
+  it). Strains shift the creature's colour and get a discovery line in the log;
+  flaws drain the colour so doomed branches are visible on the map.
+- Species splitting: a group that drifts 3+ traits from its species' norm and
+  holds it for 6 years becomes a new species, with a trait-derived name, a hue
+  shifted off its parent's, and a record of which disaster it happened after.
+- The inspector now shows strains, flaws, and lineage ("Split from the
+  Reedkins in year 132, after the wildfire").
+
+### The two problems worth remembering
+
+1. **The trait budget was crushed to nothing.** Average traits per creature was
+   1.09 - everyone carried exactly one trait, so nothing could ever drift the
+   3 traits a split needs. Food, not the population cap, was the binding
+   constraint, and at equilibrium that always squeezes the trait budget to
+   zero. Fixed by lowering base upkeep 3.0 -> 2.2, easing grazing, raising
+   regrow rates, and correcting a modelling error: plant regrowth was being
+   multiplied by the *instantaneous* day/night light value, which halved it.
+   Regrowth now uses daily-average light (`World.growLightAt`); photosynthetic
+   creatures still eat the instantaneous value. Average traits is now ~1.8-2.2.
+
+2. **Nothing ever speciated, and it was a missing mechanism, not a threshold.**
+   `tools/splittest.js` showed divergent creatures existed (up to 33 at once)
+   but the largest cluster sharing a genome was 5. Inheritance is a per-trait
+   coin flip, so a novel combination is halved every generation by mating back
+   into the majority. Added **assortative mating** (`CFG.mateChoosiness`):
+   creatures prefer mates with similar genomes. Clusters now reinforce and
+   splits happen on their own. This is the mechanism real speciation uses and
+   the sim was simply missing it.
+
+### Verified how
+
+- `tools/headless.js test-1 400 35`: 4 species, 2 from splits, 6 strains
+  discovered, 46 distinct genomes, avg 2.21 traits.
+- **Browser-verified** via `tools/selftest.html`: no JS errors, 300 sim years
+  driven by hand at 3202 ticks/s, "4 species ever, 2 from splits, 3 alive
+  (Sundrinkers from Duncreepers y90; Sunspawns from Duncreepers y220)",
+  8 strains discovered, 50 sprites baked.
+- Screenshots: three species reading as visibly different colours on the map,
+  the creature inspector showing a flaw, strain discoveries in the log.
+
+### Still not verified
+
+`file://` (the extension refuses those URLs) and touch on a real device -
+both carried over from checkpoint 1.
+
+### Known
+
+Splits are stochastic - some 300-year runs produce none. That is correct, not
+a bug, but if it feels too rare in play, lower `SplitConfig.minGroup` or raise
+`CFG.mateChoosiness`.
+
+### Next - checkpoint 3
+
+The rest of the disasters: the nine other sudden ones, the slow squeezes
+(ice age, ash winter, famine, sea rise), the good events, and the player-driven
+ones. Ash winter and the Long Night are also the traits that finally punish
+Photosynthetic Skin, which currently dominates most runs unopposed.

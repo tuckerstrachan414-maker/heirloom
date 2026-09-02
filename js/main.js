@@ -36,6 +36,8 @@
       sim.onYear = this.narrator.year.bind(this.narrator);
       sim.onDisaster = this.narrator.disaster.bind(this.narrator);
       sim.onExtinct = this.narrator.extinct.bind(this.narrator);
+      sim.onSplit = this.narrator.split.bind(this.narrator);
+      sim.onStrain = this.narrator.strain.bind(this.narrator);
 
       this.log.say('A world is seeded.', 'event', 0);
 
