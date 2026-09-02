@@ -9,10 +9,10 @@
   <div id="topbar"><span id="statYear"></span><span id="statPop"></span><span id="statSpecies"></span><span id="statGen"></span>
     <span id="speeds"><button data-speed="0"></button><button data-speed="1"></button><button data-speed="4"></button><button data-speed="16"></button></span>
     <button id="btnNew"></button></div>
-  <div id="species"><div id="speciesList"></div></div>
+  <div id="species"><h2>Species</h2><div id="speciesList"></div></div>
   <div id="inspect" class="hidden"><span id="inspTitle"></span><button id="inspClose"></button><div id="inspBody"></div></div>
-  <div id="plagues" class="hidden"><div id="plagueList"></div></div>
-  <div id="logcard"><div id="log"></div></div>
+  <div id="plagues" class="hidden"><h2>Plagues</h2><div id="plagueList"></div></div>
+  <div id="logcard"><h2>The record</h2><div id="log"></div></div>
   <div id="tools"><div id="toolcats"></div><div id="disasters"></div><div id="hint"></div></div>
   <div id="sheet" class="hidden"><span id="sheetTitle"></span><button id="sheetClose"></button><div id="sheetBody"></div></div>
   <button id="btnTree"></button><button id="btnSave"></button>
@@ -65,6 +65,20 @@ setTimeout(function(){
   step('sprites     ',function(){return R.sprites.size+' baked from genomes';});
   step('ui          ',function(){return document.getElementById('speciesList').children.length+' species rows, '+document.getElementById('toolcats').children.length+' tabs, '+document.getElementById('disasters').children.length+' buttons in the first tab';});
   step('log         ',function(){return G.log.lines.length+' lines';});
+  step('folding     ',function(){
+    var sp=document.getElementById('species');
+    var was=sp.classList.contains('folded');
+    sp.querySelector('h2').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    var now=sp.classList.contains('folded');
+    sp.querySelector('h2').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    return (was!==now&&sp.classList.contains('folded')===was)
+      ? 'species card folds and unfolds on a tap' : 'FOLD TOGGLE BROKEN';
+  });
+  step('--topH      ',function(){
+    G.measureTop();
+    var v=getComputedStyle(document.documentElement).getPropertyValue('--topH').trim();
+    return 'top bar measured at '+(v||'NOT SET');
+  });
   step('300y by hand',function(){
     var t0=performance.now();
     for(var i=0;i<24*300;i++){ S.tick(1/24); if(i%(24*35)===0&&i) G.fire('wildfire',{}); }

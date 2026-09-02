@@ -63,6 +63,7 @@
 
       if (this.renderer) this.renderer.clearSprites();
       this.renderer = new global.Renderer(this.canvas, sim);
+      this.measureTop();
       this.renderer.resize();
       this.renderer.fit();
       this.renderer.paintAll();
@@ -74,6 +75,14 @@
     },
 
     setSpeed: function (s) { this.speed = s; global.UI.setSpeed(s); },
+
+    // The top bar wraps to two or three rows on a narrow phone, so no CSS
+    // constant can know how tall it is. Measure it; the panels hang off it.
+    measureTop: function () {
+      const bar = document.getElementById('topbar');
+      if (!bar) return;
+      document.documentElement.style.setProperty('--topH', (bar.offsetHeight + 6) + 'px');
+    },
 
     fire: function (id, opts) {
       const sim = this.sim;
@@ -220,13 +229,17 @@
         else if (e.key === 't' || e.key === 'T') global.UI.showTree();
       });
 
-      window.addEventListener('resize', function () {
+      const onResize = function () {
+        self.measureTop();
         if (!self.renderer) return;
         const z = self.renderer.cam.z;
         self.renderer.resize();
         self.renderer.cam.z = z;
         self.renderer.clamp();
-      });
+      };
+      window.addEventListener('resize', onResize);
+      // iOS fires orientationchange before the new size is readable.
+      window.addEventListener('orientationchange', function () { setTimeout(onResize, 250); });
     }
   };
 

@@ -435,3 +435,63 @@ watched it work from a real `file://` page.
 The doc's remaining wants: a proper first-run moment (the game currently starts
 mid-sandbox with no framing), and whatever a real playtest turns up. There is
 still no auto-disaster timer, deliberately - Tucker chose fully player-driven.
+
+---
+
+## 2026-09-02 - A phone build, for playtesting
+
+Tucker asked for a file he could play on an iPhone 16. Two things were needed.
+
+### One self-contained file (`node tools/bundle.js`)
+
+iOS will not serve a folder of files to Safari, but it will open a single
+self-contained `.html` out of the Files app. `tools/bundle.js` inlines the
+stylesheet and all seventeen scripts into `HEIRLOOM.html` (about 190 KB) and
+**refuses to build** if any source contains `</script` or `<!--`, either of
+which would silently end the inline block early, or if any external `src`/`href`
+survives. The folder-and-`index.html` build is still the real one; this is a
+copy of it.
+
+### A small-screen layout
+
+At 393x852 the desktop layout was unusable: the top bar ran off the right edge,
+every disaster button was below the fold, and the panels sat on top of each
+other. What changed, all of it behind `@media (max-width:700px),
+(max-height:520px)` so the desktop layout is untouched:
+
+- The top bar is allowed to wrap. Because it can then be two or three rows tall,
+  **its height is measured in `Game.measureTop` and handed back as `--topH`** -
+  every panel hangs off that variable. Guessing a constant was the first thing
+  that broke.
+- The disaster row scrolls sideways instead of wrapping into five rows.
+- The Species, Plagues and Record cards fold to their title bar on a tap.
+  The first two start folded on a phone; the Record does not, because it is the
+  best thing on the screen - it folds only so the map can be seen whole.
+- `viewport-fit=cover` plus `env(safe-area-inset-*)` so the notch and the home
+  indicator do not eat the controls.
+- `orientationchange` re-measures after a 250ms delay; iOS reports the old size
+  if you ask immediately.
+
+The map is 3:2 and a portrait phone is about 1:2.2, so the world can never fill
+a portrait screen. The layout leans into the letterbox instead of cropping.
+
+### Verified how
+
+`_phone.html` (a throwaway, gitignored) loads the bundle in two iframes at
+exactly 393x852 and 852x393, runs each world 188 years with fires and a plague,
+then **reports geometry as numbers**: the box of every panel, anything that
+overflows the screen edge, every pair of panels that overlap, and how many
+disaster buttons are actually reachable. Both orientations now report *no
+overflow, no overlap* with all ten buttons in reach. Screenshots after that were
+only a sanity check - the numbers found the problems.
+
+The desktop selftest still passes unchanged, including the new `folding` and
+`--topH` steps and an exact save-code round trip.
+
+### Still not verified
+
+**Nothing here has been touched by an actual finger.** The layout was measured
+in a desktop browser at iPhone dimensions, which catches overflow and overlap
+but not iOS Safari's own chrome, not whether Quick Look in the Files app runs
+the page, not pinch-zoom feel, and not whether tap-to-place a disaster is
+comfortable. That is exactly what the playtest is for.

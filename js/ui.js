@@ -28,6 +28,21 @@
       this.el.sheet.onclick = function (e) { if (e.target === UI.el.sheet) UI.closeSheet(); };
       $('btnTree').onclick = function () { UI.showTree(); };
       $('btnSave').onclick = function () { UI.showSave(); };
+
+      // On a phone there is no room for the lists and the map at once, so both
+      // lists fold to their title bar. They start folded there and open on a
+      // tap; on a desktop the handler is harmless and nothing starts folded.
+      this.phone = window.matchMedia('(max-width: 640px)').matches;
+      for (const id of ['species', 'plagues', 'logcard']) {
+        const card = $(id), bar = card && card.querySelector('h2');
+        if (!bar) continue;
+        bar.addEventListener('click', function () {
+          card.classList.toggle('folded');
+        });
+        // The record is the best thing on the screen, so it starts open even
+        // on a phone - it is foldable only so the map can be seen whole.
+        if (this.phone && id !== 'logcard') card.classList.add('folded');
+      }
       this.buildDisasters();
       this.lastSpeciesSig = '';
     },
@@ -306,6 +321,7 @@
         btn.classList.add('armed');
         this.el.canvas.classList.add('aiming');
         this.hint('Click the map to place the ' + d.name.toLowerCase() + '.');
+        if (this.phone) this.toast('Now tap the map to place the ' + d.name.toLowerCase() + '.');
       } else {
         this.game.fire(d.id, {});
       }
