@@ -346,3 +346,92 @@ fine, but it wants a human to double-click `index.html` once.
 
 The family-tree screen (the thing people screenshot) and copy-paste text save
 codes.
+
+---
+
+## 2026-09-02 - Checkpoint 5: the family tree and save codes
+
+Two things from the design doc's list, both finished and both browser-verified.
+
+### The family tree (`js/tree.js`, the "the tree" button, or press T)
+
+Every species that ever lived, drawn against the years: a bar in its own colour
+from the year it was founded to the year it died, a line dropping from its
+parent at the moment it split, the traits it gained that its parent did not, its
+peak population, and a faint dashed rule at every disaster the player set off,
+labelled. A species founded by a disaster carries "after the wildfire" under the
+start of its bar.
+
+It is one flat SVG with no interaction and no state - built fresh each time the
+sheet opens, so it can never be stale. Verified clean across four generated
+worlds with splits, extinctions and up to 16 disasters: every species drawn
+exactly once, one split line per child, no NaN anywhere.
+
+The trait line under each name is trimmed to 33 characters with a "+2" tail.
+Without that, a species carrying five traits wrote straight across the plot.
+
+### Save codes (`js/save.js`, the "save code" button)
+
+    H1|heirloom-986802600|8447|864:wildfire,...,7367:plague-whisper:28:44
+
+**A save code is not a snapshot. It is the seed plus the list of things you did,
+and loading replays them.** That is why a 352-year world with ten disasters fits
+in 183 characters - short enough to paste into a chat window on a school
+computer, which is what the doc asked for. Loading fast-forwards in 1200-tick
+slices so the page keeps painting and can show progress.
+
+This only works because the sim is exactly deterministic, so that got proved
+before anything was built on it: `tools/determinism.js` runs the same seed and
+schedule twice and compares creature genomes, positions, plague lineages and
+world tile sums. Identical. `tools/savetest.js` then plays a world, encodes it,
+replays from the code and compares the same things - exact over 240 years and
+eight disasters.
+
+**This makes determinism load-bearing rather than a nicety.** One `Math.random`
+in the tick and every save code in the world silently restores a *different*
+world. Written up as a strengthened invariant 2 in CLAUDE.md.
+
+`Game.fire` is now the only thing that appends to `sim.timeline`, so any future
+way for the player to change the world has to go through it or it will not be in
+the save.
+
+### Bugs found by running it
+
+1. **The tree drew disaster rules at NaN.** `sim.timeline` records `t` in ticks;
+   the tree read `m.year`, which does not exist. Caught by a check that greps
+   the generated SVG for NaN/undefined/Infinity - worth keeping, since an SVG
+   with a bad coordinate just silently omits the element.
+2. **A restored world was one `census()` ahead of the original**, which retires
+   spent plague lineages and so reordered `plagues.concat(pastPlagues)`. The
+   worlds were identical; the comparison was not order-insensitive. Fixed in
+   the test, not the code - ending a restore with a census is correct.
+3. **Typing a save code changed the game speed**, because the keyboard handler
+   only skipped `INPUT`, not `TEXTAREA`.
+
+### Verified how
+
+- `tools/determinism.js 260` and `tools/savetest.js 240`, both exact.
+- **Browser-verified** at <http://localhost:4173/tools/selftest.html>: no JS
+  errors, the tree builds 12 bars and 4 split lines for 6 species with clean
+  numbers, the save sheet prefills and opens and closes, junk codes are refused,
+  and - the important one - the real chunked `SaveCode.restore` running through
+  `requestAnimationFrame` reproduced **the same year, population, species,
+  plague lineages and every genome and position**.
+- Screenshot of the family tree over a 420-year world with a split, an
+  extinction and eight wildfires marked.
+
+### Still not verified
+
+`file://` and touch on a real device - unchanged since checkpoint 1. Nothing in
+this checkpoint uses `fetch`, XHR, modules or any external resource. One thing
+here is genuinely worth a human check: **the Copy button** uses
+`document.execCommand('copy')` because the async clipboard API is refused from
+`file://`. If it fails the textarea is already selected and the message says to
+press Ctrl+C, so the feature degrades rather than breaks - but nobody has
+watched it work from a real `file://` page.
+
+### Next
+
+The doc's remaining wants: a proper first-run moment (the game currently starts
+mid-sandbox with no framing), and whatever a real playtest turns up. There is
+still no auto-disaster timer, deliberately - Tucker chose fully player-driven.

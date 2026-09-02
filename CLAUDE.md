@@ -41,6 +41,8 @@ automated checks go through HTTP.
     js/plague.js        infection, contagion, mutation, immune memory
     js/log.js           the log and the narrator
     js/render.js        terrain cache + trait-baked creature sprites + camera
+    js/tree.js          the family tree, built as one flat SVG
+    js/save.js          save codes: seed + what you did, replayed on load
     js/ui.js            panels, species list, inspector, disaster buttons
     js/main.js          boot, frame loop, input
 
@@ -50,6 +52,8 @@ automated checks go through HTTP.
     tools/selftest.html in-browser smoke test; reports numbers, not vibes
     tools/patch.js      exact-string file patcher (there is no Edit tool here)
     tools/plaguetest.js drops a plague on a grown world and follows the lineages
+    tools/determinism.js  proves the same seed and schedule replays identically
+    tools/savetest.js   plays a world, encodes it, replays it, compares everything
     tools/visual-driver.js  drives the real game for screenshots
 
 ## Invariants - do not break these
@@ -58,8 +62,15 @@ automated checks go through HTTP.
    only. ES modules, `fetch`, and XHR all fail from `file://`. There are
    currently zero external resources; keep it that way.
 2. **All simulation randomness goes through `sim.rng`.** Never `Math.random` in
-   sim code, or seeds stop reproducing. The one deliberate exception is the
-   cosmetic screen-shake jitter in `render.js`.
+   sim code. The one deliberate exception is the cosmetic screen-shake jitter
+   in `render.js`, which nothing reads back.
+
+   Since checkpoint 5 this is **load-bearing, not a nicety**: a save code is
+   the seed plus the list of things the player did, and loading replays them.
+   One `Math.random` anywhere in the tick and every save code in the world
+   silently restores a different world. `tools/determinism.js` and
+   `tools/savetest.js` exist to catch exactly that - run them after touching
+   anything in the tick.
 3. **Adding a trait = appending one row to `TRAITS`.** Nothing else should need
    to know it exists. Same for `DISASTERS` and `STRAINS` (which holds both
    synergies and anti-synergies: `need` plus optional `without`).
@@ -123,6 +134,21 @@ automated checks go through HTTP.
                    can never be caught by one disaster and nothing dramatic ever
                    happens. This number is load-bearing.
 
+## Save codes
+
+    H1|<seed>|<ticks>|<tick>:<disaster>[:<x>:<y>],...
+
+Not a snapshot - a replay log, which is why a five-hundred-year world fits in
+under 200 characters and can be pasted into a chat window. `Game.fire` is the
+only thing that appends to `sim.timeline`, so anything the player does must go
+through it or it will not be in the save. Loading fast-forwards in 1200-tick
+slices so the page keeps painting.
+
+A code naming a disaster that no longer exists skips that event rather than
+refusing the whole code. Bump the `H1` tag if a change ever makes old codes
+restore a *different* world - a silently wrong world is much worse than a
+rejected one.
+
 `SplitConfig` in `js/sim.js` governs speciation: `minDist` traits away from the
 species norm, `minGroup` creatures holding that genome, sustained `years` years,
 from a parent of at least `minParent`.
@@ -150,6 +176,8 @@ front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
     node tools/disastertest.js                         # fires all 21, reports cull %
     node tools/maturetest.js <id> <growYears>          # fire one at an evolved world
     node tools/plaguetest.js <base> <grow> <watch>     # follow a plague's lineages
+    node tools/determinism.js <years>                  # same seed twice, compared
+    node tools/savetest.js <years>                     # play, encode, replay, compare
 
 `disastertest.js` takes about 90 seconds - run it in the background. It is the
 only thing that catches a disaster row that throws, does nothing, or wipes the
@@ -165,7 +193,9 @@ To rebuild the screenshot page:
 
     node -e "const f=require('fs');f.writeFileSync('_visual.html',f.readFileSync('index.html','utf8').replace('</body>','<script src=\"tools/visual-driver.js\"></script></body>'))"
 
-then open `_visual.html?r=1#y=90&fire&burn=2&pause`. Hash-only URL changes do
+then open `_visual.html?r=1#y=90&fire&burn=2&pause`; other hash options are
+`every=<years>`, `cast=<disaster-id>`, `then=<years>`, `zoom`, `inspect`,
+`tree` and `savecode`. Hash-only URL changes do
 not reload the page - always bump the `?r=` query too.
 
 ## Environment notes

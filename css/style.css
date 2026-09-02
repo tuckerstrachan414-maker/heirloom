@@ -184,3 +184,51 @@ button.ghost:hover{color:var(--ink)}
 .toolrow button.plague{border-color:rgba(185,168,216,0.45)}
 .toolrow button.plague:hover{background:rgba(185,168,216,0.20)}
 .toolrow button.player{border-color:rgba(217,164,65,0.5)}
+
+/* ---- the full-screen sheet: the tree, and the save code ---- */
+#sheet{
+  position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+  padding:26px;background:rgba(12,11,9,0.74);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+#sheet .sheetbox{
+  background:var(--panel);border:1px solid var(--edge);border-radius:9px;
+  box-shadow:0 14px 46px rgba(0,0,0,0.6);
+  width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;
+}
+#sheet.wide .sheetbox{width:min(1180px,100%)}
+#sheet h2{
+  margin:0;padding:9px 12px 7px;font:600 10px/1 inherit;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid rgba(217,164,65,0.13);
+  display:flex;align-items:center;justify-content:space-between;
+}
+#sheet .x{background:none;border:none;color:var(--muted);padding:0 2px;font-size:17px;line-height:1}
+#sheet .x:hover{color:var(--ink);background:none}
+#sheetBody{overflow:auto;padding:12px 14px 15px}
+
+.treehead{
+  font:13px/1.5 Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  color:var(--muted);margin:0 0 8px 2px;
+}
+.treeplot{min-width:520px}
+.treeplot svg{display:block}
+
+.sheetnote{
+  margin:0 0 9px;font:13px/1.5 Georgia,"Iowan Old Style","Palatino Linotype",serif;color:#c8bda4;
+}
+#savebox{
+  width:100%;height:112px;box-sizing:border-box;resize:vertical;
+  background:rgba(12,11,9,0.6);color:var(--ink);
+  border:1px solid var(--edge);border-radius:5px;padding:8px 9px;
+  font:11.5px/1.45 ui-monospace,Consolas,monospace;word-break:break-all;
+}
+#savebox:focus{outline:none;border-color:var(--gold)}
+.sheetrow{display:flex;align-items:center;gap:8px;margin-top:9px}
+.sheetrow button{padding:6px 13px}
+#saveMsg{font-size:11.5px;color:var(--gold)}
+
+@media (max-width:760px){
+  #sheet{padding:10px}
+  #sheetBody{padding:9px 10px 12px}
+}

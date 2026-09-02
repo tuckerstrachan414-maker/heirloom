@@ -14,6 +14,8 @@
   <div id="plagues" class="hidden"><div id="plagueList"></div></div>
   <div id="logcard"><div id="log"></div></div>
   <div id="tools"><div id="toolcats"></div><div id="disasters"></div><div id="hint"></div></div>
+  <div id="sheet" class="hidden"><span id="sheetTitle"></span><button id="sheetClose"></button><div id="sheetBody"></div></div>
+  <button id="btnTree"></button><button id="btnSave"></button>
   <div id="toast"></div>
 </div>
 <script>
@@ -34,6 +36,8 @@ window.addEventListener('unhandledrejection', function(e){ window.__errors.push(
 <script src="../js/plague.js"></script>
 <script src="../js/log.js"></script>
 <script src="../js/render.js"></script>
+<script src="../js/tree.js"></script>
+<script src="../js/save.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/main.js"></script>
 <script>
@@ -126,8 +130,63 @@ setTimeout(function(){
     return document.getElementById('plagueList').children.length+' rows, card '+
       (card.classList.contains('hidden')?'hidden (nothing live)':'showing');
   });
+  step('save code   ',function(){
+    var code=window.SaveCode.encode(G);
+    var back=window.SaveCode.decode(code);
+    if(typeof back==='string')return 'REFUSED ITS OWN CODE: '+back;
+    return code.length+' chars, '+back.events.length+' events, '+Math.round(back.ticks/24)+' years  ['+code.slice(0,64)+'...]';
+  });
+  step('save refuses',function(){
+    var junk=['','hello','H1|s'],out=[];
+    for(var i=0;i<junk.length;i++){var r=window.SaveCode.decode(junk[i]);
+      out.push(typeof r==='string'?'refused':'ACCEPTED JUNK');}
+    return out.join(', ');
+  });
+  step('family tree ',function(){
+    window.UI.showTree();
+    var body=document.getElementById('sheetBody');
+    if(!body.querySelector('svg')){window.UI.closeSheet();return 'NO SVG';}
+    var bars=(body.innerHTML.match(/<rect/g)||[]).length;
+    var lines=(body.innerHTML.match(/<path/g)||[]).length;
+    var dirty=/NaN|undefined|Infinity/.test(body.innerHTML);
+    window.UI.closeSheet();
+    return bars+' bars and '+lines+' split lines for '+S.species.length+' species, '+
+      (dirty?'BAD NUMBERS IN SVG':'numbers clean')+', '+S.timeline.length+' disasters marked';
+  });
+  step('save sheet  ',function(){
+    window.UI.showSave();
+    var box=document.getElementById('savebox');
+    var ok=box&&box.value.indexOf('H1|')===0;
+    var open=window.UI.sheetOpen();
+    window.UI.closeSheet();
+    return (ok?'textarea prefilled':'SAVE SHEET BROKEN')+', sheet opened '+open+', closes '+!window.UI.sheetOpen();
+  });
   step('redraw      ',function(){R.draw();return 'ok, '+colours(R.canvas,4000)+' distinct colours';});
   step('log tail    ',function(){return G.log.lines.slice(-5).map(function(l){return l.text;}).join('  //  ');});
-  say('errors after: '+(window.__errors.length?window.__errors.join(' | '):'none'));
+  // The one path the synchronous steps cannot reach: the real chunked restore.
+  function print(S2){
+    return [S2.year.toFixed(4), S2.aliveCount, S2.stats.born, S2.stats.total,
+      S2.species.map(function(x){return x.plural()+':'+x.pop+':'+x.founded;}).join(','),
+      S2.plagues.concat(S2.pastPlagues).map(function(p){return p.name+':'+p.everInfected;}).sort().join(','),
+      S2.creatures.filter(function(c){return c.alive;}).map(function(c){
+        return c.mask+'@'+c.x.toFixed(3)+','+c.y.toFixed(3);}).sort().join('|')].join(' ~ ');
+  }
+  G.setSpeed(0);
+  S.census();   // restore ends with one, so both sides must have had one
+  var wanted=print(S), code2=window.SaveCode.encode(G);
+  say('restoring   : replaying '+Math.round(window.SaveCode.decode(code2).ticks/24)+' years from the code...');
+  window.SaveCode.restore(G, window.SaveCode.decode(code2), null, function(){
+    G.setSpeed(0);
+    var got=print(G.sim);
+    if(got===wanted) say('round trip  : EXACT - same year, population, species, plagues and every genome/position');
+    else{
+      var w=wanted.split(' ~ '), g=got.split(' ~ '), names=['year','alive','born','deaths','species','plagues','creatures'];
+      var diff=[];for(var i=0;i<w.length;i++)if(w[i]!==g[i])diff.push(names[i]);
+      say('round trip  : DIFFERS in '+diff.join(', '));
+      say('        was : '+wanted.slice(0,150));
+      say('        got : '+got.slice(0,150));
+    }
+    say('errors after: '+(window.__errors.length?window.__errors.join(' | '):'none'));
+  });
 },2000);
 </script></body></html>

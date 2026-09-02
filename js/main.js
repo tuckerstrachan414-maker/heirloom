@@ -42,6 +42,10 @@
       sim.onPlague = this.narrator.plague.bind(this.narrator);
       sim.onPlagueEnd = this.narrator.plagueEnd.bind(this.narrator);
 
+      // What the player does to the world, in tick order. This is the whole
+      // save format (js/save.js) and the disaster rules on the family tree.
+      sim.timeline = [];
+
       this.log.say('A world is seeded.', 'event', 0);
 
       // Starter stock is plain: no traits at all. Everything they become,
@@ -72,8 +76,13 @@
     setSpeed: function (s) { this.speed = s; global.UI.setSpeed(s); },
 
     fire: function (id, opts) {
-      const line = this.sim.trigger(id, opts);
-      if (!line) global.UI.toast('Nothing there will catch.');
+      const sim = this.sim;
+      const at = Math.round(sim.year * 24);
+      const line = sim.trigger(id, opts);
+      if (!line) { global.UI.toast('Nothing there will catch.'); return null; }
+      const rec = { t: at, id: id, name: global.Disasters.BY_ID[id].name };
+      if (opts && opts.x !== undefined) { rec.x = Math.round(opts.x); rec.y = Math.round(opts.y); }
+      sim.timeline.push(rec);
       return line;
     },
 
@@ -198,12 +207,17 @@
       document.getElementById('btnNew').onclick = function () { self.newWorld(); };
 
       window.addEventListener('keydown', function (e) {
-        if (e.target.tagName === 'INPUT') return;
+        const tag = e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
         if (e.code === 'Space') { e.preventDefault(); self.setSpeed(self.speed ? 0 : 1); }
         else if (e.key === '1') self.setSpeed(1);
         else if (e.key === '2') self.setSpeed(4);
         else if (e.key === '3') self.setSpeed(16);
-        else if (e.key === 'Escape') { global.UI.disarm(); global.UI.clearSelection(); }
+        else if (e.key === 'Escape') {
+          if (global.UI.sheetOpen()) global.UI.closeSheet();
+          else { global.UI.disarm(); global.UI.clearSelection(); }
+        }
+        else if (e.key === 't' || e.key === 'T') global.UI.showTree();
       });
 
       window.addEventListener('resize', function () {

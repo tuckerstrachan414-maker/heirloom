@@ -23,6 +23,8 @@
     <button data-speed="4">4&times;</button>
     <button data-speed="16">16&times;</button>
   </span>
+  <button id="btnTree" class="ghost" title="The family tree">the tree</button>
+  <button id="btnSave" class="ghost" title="Save code">save code</button>
   <button id="btnNew" class="ghost" title="New world">new world</button>
 </div>
 
@@ -52,6 +54,13 @@
   <div class="hint" id="hint">Click the map to set the fire.</div>
 </div>
 
+<div id="sheet" class="hidden">
+  <div class="sheetbox">
+    <h2><span id="sheetTitle"></span><button id="sheetClose" class="x">&times;</button></h2>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="js/rng.js"></script>
@@ -67,6 +76,8 @@
 <script src="js/plague.js"></script>
 <script src="js/log.js"></script>
 <script src="js/render.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/save.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

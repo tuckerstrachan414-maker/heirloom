@@ -33,6 +33,8 @@
       var withStrain = pick.filter(function (s) { return s.strains && s.strains.length; });
       window.UI.selectSpecies(withStrain[0] || pick[0]);
     }
+    if (/tree/.test(location.hash)) window.UI.showTree();
+    if (/savecode/.test(location.hash)) window.UI.showSave();
     G.setSpeed(/pause/.test(location.hash) ? 0 : 1);
     window.__ready = true;
   }

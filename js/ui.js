@@ -19,10 +19,15 @@
         list: $('speciesList'), inspect: $('inspect'), inspTitle: $('inspTitle'),
         inspBody: $('inspBody'), disasters: $('disasters'), hint: $('hint'),
         plagues: $('plagues'), plagueList: $('plagueList'),
+        sheet: $('sheet'), sheetTitle: $('sheetTitle'), sheetBody: $('sheetBody'),
         cats: $('toolcats'),
         toast: $('toast'), canvas: $('world')
       };
       $('inspClose').onclick = function () { UI.clearSelection(); };
+      $('sheetClose').onclick = function () { UI.closeSheet(); };
+      this.el.sheet.onclick = function (e) { if (e.target === UI.el.sheet) UI.closeSheet(); };
+      $('btnTree').onclick = function () { UI.showTree(); };
+      $('btnSave').onclick = function () { UI.showSave(); };
       this.buildDisasters();
       this.lastSpeciesSig = '';
     },
@@ -184,6 +189,63 @@
         }
       }
       this.el.inspBody.innerHTML = h;
+    },
+
+    // ---- the full-screen sheet ------------------------------------------
+    openSheet: function (title, html, wide) {
+      this.el.sheetTitle.textContent = title;
+      this.el.sheetBody.innerHTML = html;
+      this.el.sheet.classList.toggle('wide', !!wide);
+      this.el.sheet.classList.remove('hidden');
+    },
+
+    closeSheet: function () { this.el.sheet.classList.add('hidden'); },
+
+    sheetOpen: function () { return !this.el.sheet.classList.contains('hidden'); },
+
+    showTree: function () {
+      const t = global.Tree.build(this.game.sim, this.game.seedText);
+      this.openSheet('The family tree',
+        '<div class="treehead">' + t.head + '</div><div class="treeplot">' + t.svg + '</div>', true);
+    },
+
+    showSave: function () {
+      const code = global.SaveCode.encode(this.game);
+      this.openSheet('Save code',
+        '<p class="sheetnote">This is the whole world: the seed and everything you did to it. ' +
+        'Copy it somewhere. Paste one back in and press Load to get that world again.</p>' +
+        '<textarea id="savebox" spellcheck="false"></textarea>' +
+        '<div class="sheetrow"><button id="saveCopy">Copy</button>' +
+        '<button id="saveLoad">Load this code</button>' +
+        '<span id="saveMsg"></span></div>');
+      const box = document.getElementById('savebox');
+      box.value = code;
+      box.focus(); box.select();
+      const msg = document.getElementById('saveMsg');
+      document.getElementById('saveCopy').onclick = function () {
+        box.focus(); box.select();
+        // execCommand is deprecated but it is the one that works from
+        // file://, where the async clipboard API is refused outright.
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        msg.textContent = ok ? 'Copied.' : 'Press Ctrl+C - it is selected.';
+      };
+      document.getElementById('saveLoad').onclick = function () { UI.loadCode(box.value, msg); };
+    },
+
+    loadCode: function (text, msg) {
+      const save = global.SaveCode.decode(text);
+      if (typeof save === 'string') { msg.textContent = save; return; }
+      this.closeSheet();
+      this.clearSelection();
+      const years = Math.round(save.ticks / 24);
+      this.hint('Restoring ' + years + ' years...');
+      global.SaveCode.restore(this.game, save,
+        function (p) { UI.hint('Restoring ' + years + ' years... ' + Math.round(p * 100) + '%'); },
+        function () {
+          UI.hint(UI.defaultHint);
+          UI.toast('Restored to year ' + Math.floor(UI.game.sim.year) + '.');
+        });
     },
 
     // ---- disasters ------------------------------------------------------
