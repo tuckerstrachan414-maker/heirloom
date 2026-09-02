@@ -22,7 +22,7 @@
     mateChoosiness: 9,   // weight on genome similarity when picking a mate
     eatRate: 1.40,       // how much more than upkeep a creature tries to take
     deplete: 0.32,       // how hard grazing strips a tile
-    checkpoint: 2
+    checkpoint: 3
   };
 
   // Rates are per year and applied as rate*dt, so keep rate*dt well under 1
@@ -50,6 +50,7 @@
     this.aliveCount = 0;
     this.newGenomes = 0;
     this.events = [];
+    this.effects = [];
     this.yearStats = null;
     this.resetYearStats();
     this.shakeAmt = 0;
@@ -134,7 +135,11 @@
       asleep: 0,
       alive: true,
       born: this.year,
-      wob: this.rng.range(0, 6.283)
+      wob: this.rng.range(0, 6.283),
+      // Set here as well as in updateCreature: a disaster can strike a creature
+      // that has not had a tick yet, and its filters read c.tile.
+      tile: Math.max(0, Math.min(this.world.n - 1,
+            (Math.max(0, y | 0) * this.world.w) + Math.max(0, x | 0)))
     };
     this.creatures.push(c);
     this.aliveCount++;
@@ -470,6 +475,7 @@
   Sim.prototype.tick = function (dt) {
     this.year += dt;
     this.world.tick(dt);
+    if (this.effects.length) this.updateEffects(dt);
     this.buildGrid();
 
     const cs = this.creatures;
@@ -559,6 +565,90 @@
   Sim.prototype.prevalence = function (sp, traitId) {
     if (!sp.pop) return 0;
     return sp.traitCount[T.BY_ID[traitId].index] / sp.pop;
+  };
+
+  // ---- disaster support --------------------------------------------------
+  // Which death a damage kind reads as in the log and the death flash.
+  const CAUSE = {
+    fire: 'burned', ash: 'burned', heat: 'cooked', cold: 'frozen',
+    flood: 'drowned', drought: 'starved', famine: 'starved'
+  };
+  function causeOf(kind) { return CAUSE[kind] || 'died'; }
+
+  // One damaging pulse over an area. Severity falls off toward the edge, every
+  // creature gets its resistance and the mercy rule, and a `filter` lets a
+  // disaster spare things by where they are rather than by what they carry.
+  Sim.prototype.strike = function (cx, cy, radius, kind, severity, filter) {
+    const r2 = radius * radius;
+    const cause = causeOf(kind);
+    let killed = 0;
+    for (const c of this.creatures) {
+      if (!c.alive) continue;
+      const dx = c.x - cx, dy = c.y - cy, dd = dx * dx + dy * dy;
+      if (dd > r2) continue;
+      const falloff = 1 - Math.sqrt(dd) / radius * 0.75;
+      let p = severity * falloff * (1 - G.resistOf(c.d, kind));
+      if (filter) p *= filter(c, this);
+      p *= this.mercy(c);
+      if (p > 0 && this.rng.next() < p) { this.kill(c, cause); killed++; }
+    }
+    return killed;
+  };
+
+  Sim.prototype.strikeAll = function (kind, severity, filter) {
+    const cause = causeOf(kind);
+    let killed = 0;
+    for (const c of this.creatures) {
+      if (!c.alive) continue;
+      let p = severity * (1 - G.resistOf(c.d, kind));
+      if (filter) p *= filter(c, this);
+      p *= this.mercy(c);
+      if (p > 0 && this.rng.next() < p) { this.kill(c, cause); killed++; }
+    }
+    return killed;
+  };
+
+  // Walk every tile within a radius. Disasters reshape the world through this.
+  Sim.prototype.eachTile = function (cx, cy, radius, fn) {
+    const w = this.world;
+    const x0 = Math.max(0, Math.floor(cx - radius)), x1 = Math.min(w.w - 1, Math.ceil(cx + radius));
+    const y0 = Math.max(0, Math.floor(cy - radius)), y1 = Math.min(w.h - 1, Math.ceil(cy + radius));
+    const r2 = radius * radius;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dx = x - cx, dy = y - cy, dd = dx * dx + dy * dy;
+        if (dd > r2) continue;
+        fn.call(this, y * w.w + x, Math.sqrt(dd) / radius, x, y);
+      }
+    }
+  };
+
+  // ---- slow disasters ---------------------------------------------------
+  // A squeeze that lasts decades. The row supplies duration and an update that
+  // runs every tick with progress 0..1.
+  Sim.prototype.startEffect = function (d, opts) {
+    for (const e of this.effects) if (e.d.id === d.id) return null;   // no stacking
+    this.effects.push({ d: d, t: 0, dur: d.duration, opts: opts || {} });
+    return true;
+  };
+
+  Sim.prototype.hasEffect = function (id) {
+    for (const e of this.effects) if (e.d.id === id) return true;
+    return false;
+  };
+
+  Sim.prototype.updateEffects = function (dt) {
+    for (let i = this.effects.length - 1; i >= 0; i--) {
+      const e = this.effects[i];
+      e.t += dt;
+      const p = Math.min(1, e.t / e.dur);
+      if (e.d.update) e.d.update(this, p, dt, e);
+      if (e.t >= e.dur) {
+        this.effects.splice(i, 1);
+        const line = e.d.end ? e.d.end(this, e) : null;
+        if (line && this.onEffectEnd) this.onEffectEnd(e.d, line);
+      }
+    }
   };
 
   // ---- disasters --------------------------------------------------------

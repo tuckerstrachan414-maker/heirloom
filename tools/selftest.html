@@ -12,7 +12,7 @@
   <div id="species"><div id="speciesList"></div></div>
   <div id="inspect" class="hidden"><span id="inspTitle"></span><button id="inspClose"></button><div id="inspBody"></div></div>
   <div id="logcard"><div id="log"></div></div>
-  <div id="tools"><div id="disasters"></div><div id="hint"></div></div>
+  <div id="tools"><div id="toolcats"></div><div id="disasters"></div><div id="hint"></div></div>
   <div id="toast"></div>
 </div>
 <script>
@@ -56,7 +56,7 @@ setTimeout(function(){
   step('terrain     ',function(){return R.terrain.width+'x'+R.terrain.height+', '+colours(R.terrain,4000)+' distinct colours';});
   step('draw()      ',function(){R.draw();return 'ok, screen shows '+colours(R.canvas,4000)+' distinct colours';});
   step('sprites     ',function(){return R.sprites.size+' baked from genomes';});
-  step('ui          ',function(){return document.getElementById('speciesList').children.length+' species rows, '+document.getElementById('disasters').children.length+' disaster buttons';});
+  step('ui          ',function(){return document.getElementById('speciesList').children.length+' species rows, '+document.getElementById('toolcats').children.length+' tabs, '+document.getElementById('disasters').children.length+' buttons in the first tab';});
   step('log         ',function(){return G.log.lines.length+' lines';});
   step('300y by hand',function(){
     var t0=performance.now();

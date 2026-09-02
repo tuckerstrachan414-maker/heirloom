@@ -271,11 +271,11 @@
       const bi = BIOMES[this.biome[i]];
 
       if (this.burn[i] <= 0 && bi.regrow > 0) {
-        const light = 0.35 + this.growLightAt(i) * 0.65;
+        const light = 0.15 + this.growLightAt(i) * 0.85;
         this.food[i] = Math.min(1, this.food[i] + bi.regrow * light * (n / slice) * dt * 1.2);
       }
       if (this.ash[i] > 0) this.ash[i] = Math.max(0, this.ash[i] - 0.030 * (n / slice) * dt);
-      if (this.rad[i] > 0) this.rad[i] = Math.max(0, this.rad[i] - 0.006 * (n / slice) * dt);
+      if (this.rad[i] > 0) this.rad[i] = Math.max(0, this.rad[i] - 0.05 * (n / slice) * dt);
 
       // Burnt ground greens over again once the food has come back.
       if (this.biome[i] === B.burnt && this.food[i] > 0.45) {

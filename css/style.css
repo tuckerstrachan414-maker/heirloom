@@ -154,3 +154,17 @@ button.ghost:hover{color:var(--ink)}
   padding-left:8px;border-left:1px solid rgba(217,164,65,0.28)}
 .lineage b{color:var(--ink);font-weight:500}
 .sp .star{font-style:normal;color:var(--gold);font-size:13px;line-height:1;margin:0 3px 0 -2px}
+
+/* ---- disaster category tabs ---- */
+.toolcats{display:flex;gap:3px;margin-bottom:3px;padding:3px;border-radius:7px;
+  background:rgba(20,18,15,0.82);border:1px solid var(--edge)}
+.toolcats .cat{padding:4px 14px;font-size:10.5px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;background:transparent;border-color:transparent;
+  color:#b0a692;border-radius:5px}
+.toolcats .cat:hover{color:var(--ink);background:rgba(217,164,65,0.08)}
+.toolcats .cat.on{color:#241c10;background:var(--gold);border-color:var(--gold)}
+.toolrow button.good{border-color:rgba(147,177,105,0.4)}
+.toolrow button.good:hover{background:rgba(147,177,105,0.24)}
+.toolrow button.slow{border-color:rgba(95,168,162,0.4)}
+.toolrow button.slow:hover{background:rgba(95,168,162,0.22)}
+.toolrow button.player{border-color:rgba(217,164,65,0.5)}

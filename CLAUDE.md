@@ -30,6 +30,7 @@ automated checks go through HTTP.
     js/rng.js           seeded RNG (mulberry32)
     js/data-traits.js   THE TRAIT REGISTRY - 26 rows
     js/data-strains.js  THE STRAIN REGISTRY - 12 synergies + 6 flaws
+    js/data-disasters.js THE DISASTER REGISTRY - 21 offered + 1 internal
     js/data-biomes.js   biome table
     js/data-disasters.js THE DISASTER REGISTRY
     js/world.js         tiles, terrain generation, food, fire, climate
@@ -70,8 +71,17 @@ automated checks go through HTTP.
    Anything running the sim without a renderer has to clear it itself, or the
    array grows without bound.
 8. **Biome `food` is food/year at full stock**, directly comparable to a
-   creature's upkeep (3.0/yr before traits). These two numbers being on
+   creature's upkeep (2.2/yr before traits). These two numbers being on
    different scales was the first serious bug in this project.
+9. **A slow disaster must undo itself in `end()`.** Anything its `update()`
+   changed - climate values, frozen tiles, flooded tiles - is still changed
+   when the effect is removed, and `update` is no longer running to put it
+   back. An ice age that forgot this left the world frozen permanently.
+10. **Target cull is 60-90%,** measured as the population *trough*, not the
+    figure some years later - the world refills fast enough to hide a real
+    disaster completely. Habitat disasters (Deluge, Tsunami, Sea Rise) cull far
+    less on purpose: they take ground rather than lives, and they exist to
+    punish coastal specialists.
 
 ## Balance knobs
 
@@ -84,7 +94,7 @@ automated checks go through HTTP.
     breedAt/Cost   0.62/0.34 fraction of energy reserve to breed / to spend
     eatRate        1.55      how much over upkeep a creature tries to take
     deplete        0.55      how hard grazing strips a tile
-    checkpoint     2         which disaster rows the UI offers
+    checkpoint     3         which disaster rows the UI offers
     mateChoosiness 9         weight on genome similarity when picking a mate.
                              LOAD-BEARING: without it a novel combination is
                              halved every generation by mating back into the
@@ -110,6 +120,12 @@ front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
     node tools/firetest.js <seed> <every> <years> aimed # does fire select for Ashlung?
     node tools/profile.js  <seed> <years>               # per-phase timing
     node tools/splittest.js <seed> <years> <fireEvery>  # why is nothing speciating?
+    node tools/disastertest.js                         # fires all 21, reports cull %
+    node tools/maturetest.js <id> <growYears>          # fire one at an evolved world
+
+`disastertest.js` takes about 90 seconds - run it in the background. It is the
+only thing that catches a disaster row that throws, does nothing, or wipes the
+map, and it has caught all three.
 
 Then in a browser: `node tools/serve.js` and open
 <http://localhost:4173/tools/selftest.html>. It prints errors, canvas colour

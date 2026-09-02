@@ -198,6 +198,13 @@
     this.quiet = 0;
   };
 
+  // A slow disaster letting go is worth a line of its own.
+  Narrator.prototype.effectEnd = function (d, line) {
+    const y = Math.floor(this.sim.year);
+    this.log.say(this.stamp(y) + line, 'event', y);
+    this.quiet = 0;
+  };
+
   // Finding a strain should read like finding a secret.
   Narrator.prototype.strain = function (s, c) {
     const y = Math.floor(this.sim.year);

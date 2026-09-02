@@ -349,10 +349,25 @@
       ctx.globalAlpha = 1;
     }
 
-    // night
-    const day = 0.5 + 0.5 * Math.cos(w.dayPhase * Math.PI * 2);
+    // night, deepened by whatever the sky is doing
+    const cl = w.climate;
+    const day = (0.5 + 0.5 * Math.cos(w.dayPhase * Math.PI * 2)) * cl.sun;
     if (day < 0.9) {
-      ctx.fillStyle = 'rgba(26,30,58,' + ((1 - day) * 0.26).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(26,30,58,' + ((1 - day) * 0.30).toFixed(3) + ')';
+      ctx.fillRect(0, 0, cw, ch);
+    }
+
+    // A slow disaster has to be visible or it is just a number going down.
+    if (cl.cold > 0.04) {
+      ctx.fillStyle = 'rgba(150,190,225,' + Math.min(0.30, cl.cold * 0.55).toFixed(3) + ')';
+      ctx.fillRect(0, 0, cw, ch);
+    }
+    if (cl.heat > 0.04) {
+      ctx.fillStyle = 'rgba(226,150,60,' + Math.min(0.26, cl.heat * 0.60).toFixed(3) + ')';
+      ctx.fillRect(0, 0, cw, ch);
+    }
+    if (cl.sun < 0.92) {
+      ctx.fillStyle = 'rgba(120,112,100,' + Math.min(0.34, (1 - cl.sun) * 0.38).toFixed(3) + ')';
       ctx.fillRect(0, 0, cw, ch);
     }
 

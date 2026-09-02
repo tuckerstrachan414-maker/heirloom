@@ -173,3 +173,79 @@ The rest of the disasters: the nine other sudden ones, the slow squeezes
 (ice age, ash winter, famine, sea rise), the good events, and the player-driven
 ones. Ash winter and the Long Night are also the traits that finally punish
 Photosynthetic Skin, which currently dominates most runs unopposed.
+
+## 2026-09-02 - Checkpoint 3: the rest of the disasters
+
+**Outcome: 21 disasters, all firing, all measured.** Ten sudden, five slow
+squeezes that run for decades, four good events, two player tools.
+
+### What was built
+
+- `js/data-disasters.js` grew from 1 row to 22 (21 offered + one internal
+  `drainage` row that floods use so their water recedes).
+- **Slow disasters**: `Sim.startEffect` / `updateEffects` run a row's
+  `update(sim, progress, dt)` every tick for decades. Ice Age freezes the map
+  inward and thaws it again, The Long Summer dries water to sand and grass to
+  clay, Ash Winter takes the sun away, Famine halves regrowth, Sea Rise drowns
+  the coasts.
+- **Area damage**: `Sim.strike` / `strikeAll` apply one pulse with distance
+  falloff, per-creature resistance, the mercy rule, and an optional filter so a
+  disaster can spare things by *where they are* (asleep, burrowed, under forest
+  canopy) rather than by what they carry.
+- Disaster buttons are grouped behind four tabs - Sudden / Slow / Fortune /
+  Yours - because twenty-one buttons in one bar is unusable.
+- The renderer now shows the climate: an ash winter darkens the world, an ice
+  age washes it blue, a long summer washes it gold.
+
+### Culls, measured (`tools/disastertest.js`, population trough)
+
+    Wildfire 45%   Meteor 60%   Eruption 57%   Lightning 81%
+    Hailstorm 21%  Earthquake 22%  Solar Flare 76%  Acid Rain 29%
+    Ice Age 90%    Long Summer 76%  Famine 8%
+    Deluge 4%      Tsunami 3%       Sea Rise 2%
+
+The last three are low **on purpose**. Creatures avoid the food-poor coast, so
+a tsunami takes ground rather than lives - it is the disaster that punishes Salt
+Glands and Driftkin specialists, and the coast it drains stays barren for years.
+
+Ash Winter reads as 8% in that table and that is the harness lying: it only
+evolves the world 45 years, so almost nothing carries Photosynthetic Skin yet.
+Fired at a 200-year world (`tools/maturetest.js ashwinter 200`) it culls **94%**
+and takes Photosynthetic Skin from 8% to 0%. Some disasters can only be judged
+against a world that has already specialised.
+
+### Bugs the harness caught
+
+1. **Three disasters threw** `Cannot read properties of undefined`. Their strike
+   filters read `c.tile`, which was only ever set inside `updateCreature` - so
+   any creature that had not had a tick yet had none. Now set in `spawn` too.
+2. **Radiation never decayed.** At 0.006 per visit a solar flare left a global
+   kill field for a century, which is why it culled 96% instead of its intended
+   66%. Decay raised to 0.05; flare deposit lowered.
+3. **The ice never melted.** Thawing happened only inside the ice age's
+   `update()`, so whatever was still frozen when the effect ended stayed frozen
+   forever. Now `end()` reclassifies every ice tile. This is a general trap and
+   is written up as invariant 9 in CLAUDE.md.
+4. Eruption (95%) and Ash Winter (measured wrong in both directions) needed
+   real tuning, not guesses.
+
+### Verified how
+
+- `tools/disastertest.js`: all 21 fire, none throw, cull percentages above.
+- `tools/maturetest.js`: slow disasters against an evolved world.
+- **Browser-verified**: no JS errors before or after, 4 tabs and 10 buttons
+  built from the registry, 300 sim years at 2036 ticks/s, 6 strains discovered.
+- Screenshot of an ice age at its peak: the world white, two clay refuges left,
+  eleven survivors, one species struck through as extinct.
+
+### Still not verified
+
+`file://` and touch on a real device. Unchanged from checkpoint 1 - the browser
+extension here refuses `file://` URLs outright, so it needs a human to
+double-click `index.html` once and confirm.
+
+### Next - checkpoint 4
+
+Living plagues (a disease with its own traits and its own mutations, per the
+design doc's section 5 - "the single best system in the game and it's cheap to
+build"), the family-tree screen, and copy-paste save codes.

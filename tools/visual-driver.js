@@ -21,6 +21,13 @@
       var s2 = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; })[0];
       if (s2) { G.renderer.cam.x = s2.cx; G.renderer.cam.y = s2.cy; G.renderer.cam.z = 26; G.renderer.clamp(); }
     }
+    var fireAt = (location.hash.match(/cast=([a-z]+)/) || [])[1];
+    if (fireAt) {
+      var sp2 = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; })[0];
+      G.fire(fireAt, sp2 ? { x: Math.round(sp2.cx), y: Math.round(sp2.cy) } : {});
+      var after2 = Number((location.hash.match(/then=([0-9]+)/) || [])[1] || 0);
+      for (var q = 0; q < 24 * after2; q++) S.tick(1 / 24);
+    }
     if (/inspect/.test(location.hash)) {
       var pick = S.livingSpecies().sort(function (a, b) { return b.pop - a.pop; });
       var withStrain = pick.filter(function (s) { return s.strains && s.strains.length; });

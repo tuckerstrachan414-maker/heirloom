@@ -18,6 +18,7 @@
         year: $('statYear'), pop: $('statPop'), species: $('statSpecies'), gen: $('statGen'),
         list: $('speciesList'), inspect: $('inspect'), inspTitle: $('inspTitle'),
         inspBody: $('inspBody'), disasters: $('disasters'), hint: $('hint'),
+        cats: $('toolcats'),
         toast: $('toast'), canvas: $('world')
       };
       $('inspClose').onclick = function () { UI.clearSelection(); };
@@ -144,22 +145,46 @@
     },
 
     // ---- disasters ------------------------------------------------------
+    // Twenty-odd buttons in one bar is unusable, so they sit behind four tabs.
+    CATS: [{ id: 'sudden', label: 'Sudden' }, { id: 'slow', label: 'Slow' },
+           { id: 'good', label: 'Fortune' }, { id: 'player', label: 'Yours' }],
+
     buildDisasters: function () {
+      const list = global.Disasters.available(global.SimConfig.checkpoint);
+      this.cats = this.CATS.filter(function (c) {
+        return list.some(function (d) { return d.kind === c.id; });
+      });
+      const bar = this.el.cats;
+      bar.innerHTML = '';
+      for (const c of this.cats) {
+        const b = document.createElement('button');
+        b.textContent = c.label;
+        b.className = 'cat';
+        b.onclick = function () { UI.showCat(c.id); };
+        bar.appendChild(b);
+        c.btn = b;
+      }
+      this.defaultHint = 'Pick something, then click the map. Drag to pan, scroll to zoom.';
+      if (this.cats.length) this.showCat(this.cats[0].id);
+      this.hint(this.defaultHint);
+    },
+
+    showCat: function (id) {
+      this.cat = id;
+      for (const c of this.cats) c.btn.classList.toggle('on', c.id === id);
       const row = this.el.disasters;
       row.innerHTML = '';
-      const list = global.Disasters.available(global.SimConfig.checkpoint);
-      for (const d of list) {
+      for (const d of global.Disasters.available(global.SimConfig.checkpoint)) {
+        if (d.kind !== id) continue;
         const b = document.createElement('button');
         b.textContent = d.name;
         b.title = d.desc;
+        b.className = 'dis ' + d.kind;
         b.onclick = function () { UI.pick(d, b); };
         b.dataset.id = d.id;
+        if (this.armed === d) b.classList.add('armed');
         row.appendChild(b);
       }
-      this.defaultHint = list.length
-        ? 'Pick a disaster, then click the map. Drag to pan, scroll to zoom.'
-        : 'Drag to pan, scroll to zoom.';
-      this.hint(this.defaultHint);
     },
 
     pick: function (d, btn) {
