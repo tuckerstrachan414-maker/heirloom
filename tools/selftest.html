@@ -11,6 +11,7 @@
     <button id="btnNew"></button></div>
   <div id="species"><div id="speciesList"></div></div>
   <div id="inspect" class="hidden"><span id="inspTitle"></span><button id="inspClose"></button><div id="inspBody"></div></div>
+  <div id="plagues" class="hidden"><div id="plagueList"></div></div>
   <div id="logcard"><div id="log"></div></div>
   <div id="tools"><div id="toolcats"></div><div id="disasters"></div><div id="hint"></div></div>
   <div id="toast"></div>
@@ -23,12 +24,14 @@ window.addEventListener('unhandledrejection', function(e){ window.__errors.push(
 <script src="../js/rng.js"></script>
 <script src="../js/data-traits.js"></script>
 <script src="../js/data-strains.js"></script>
+<script src="../js/data-plagues.js"></script>
 <script src="../js/data-biomes.js"></script>
 <script src="../js/data-disasters.js"></script>
 <script src="../js/world.js"></script>
 <script src="../js/creature.js"></script>
 <script src="../js/species.js"></script>
 <script src="../js/sim.js"></script>
+<script src="../js/plague.js"></script>
 <script src="../js/log.js"></script>
 <script src="../js/render.js"></script>
 <script src="../js/ui.js"></script>
@@ -89,6 +92,39 @@ setTimeout(function(){
   step('run 6y more ',function(){
     for(var i=0;i<24*6;i++) S.tick(1/24);
     return 'alive '+S.aliveCount+' (was '+before+')  burned total '+S.stats.burned+'  ash tiles '+ashTiles(S);
+  });
+  var pbefore=0;
+  function sick(){var n=0;S.creatures.forEach(function(c){if(c.alive&&c.inf)n++;});return n;}
+  step('a plague    ',function(){
+    pbefore=S.aliveCount;
+    var sp=S.livingSpecies()[0];
+    var line=G.fire('plague-whisper', sp?{x:Math.round(sp.cx),y:Math.round(sp.cy)}:{});
+    return (line||'FAILED TO INFECT')+'   '+sick()+' infected now';
+  });
+  step('run 45y more',function(){
+    var peak=0,trough=S.aliveCount;
+    for(var i=0;i<24*45;i++){S.tick(1/24);
+      if(i%12===0){var n=sick();if(n>peak)peak=n;}
+      if(S.aliveCount<trough)trough=S.aliveCount;}
+    return 'alive '+S.aliveCount+' (was '+pbefore+', trough '+trough+')  peak sick '+peak+
+           '  plague deaths '+S.stats.plague;
+  });
+  step('plague evo  ',function(){
+    var all=S.plagues.concat(S.pastPlagues);
+    if(!all.length) return 'NO LINEAGES AT ALL';
+    return all.length+' lineages ('+S.plagues.length+' live): '+all.slice(0,3).map(function(p){
+      return p.name+' spread '+p.transmission.toFixed(1)+' kills '+p.lethality.toFixed(2)+' R'+p.spreadRate().toFixed(1);
+    }).join('; ');
+  });
+  step('immunity    ',function(){
+    var n=0,g=0;S.creatures.forEach(function(c){if(c.alive&&c.imm){n++;for(var k in c.imm)if(c.imm[k]>g)g=c.imm[k];}});
+    return n+' alive carry immune memory, deepest strain survived gen'+g;
+  });
+  step('plague panel',function(){
+    window.UI.refresh();
+    var card=document.getElementById('plagues');
+    return document.getElementById('plagueList').children.length+' rows, card '+
+      (card.classList.contains('hidden')?'hidden (nothing live)':'showing');
   });
   step('redraw      ',function(){R.draw();return 'ok, '+colours(R.canvas,4000)+' distinct colours';});
   step('log tail    ',function(){return G.log.lines.slice(-5).map(function(l){return l.text;}).join('  //  ');});

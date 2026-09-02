@@ -594,6 +594,20 @@
     }
   ];
 
+  // Plagues are not written out here. Every row in js/data-plagues.js becomes
+  // a button, so adding a disease stays a one-row change in one file.
+  for (const s of global.PlagueData.SEEDS) {
+    DISASTERS.push({
+      id: 'plague-' + s.base, name: s.name, kind: 'plague', aim: 'point', cp: 4,
+      tags: ['plague'], color: s.color,
+      desc: s.desc,
+      trigger: function (sim, opts) {
+        const p = aim(sim, opts, null);
+        return sim.startPlague(s.base, p.x, p.y);
+      }
+    });
+  }
+
   const BY_ID = Object.create(null);
   DISASTERS.forEach(function (d, i) { d.index = i; BY_ID[d.id] = d; });
 

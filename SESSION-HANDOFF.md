@@ -249,3 +249,100 @@ double-click `index.html` once and confirm.
 Living plagues (a disease with its own traits and its own mutations, per the
 design doc's section 5 - "the single best system in the game and it's cheap to
 build"), the family-tree screen, and copy-paste save codes.
+
+---
+
+## 2026-09-02 - Checkpoint 4: living plagues
+
+A plague in HEIRLOOM is a second organism. It carries four numbers, it hands
+them to every strain it spawns, and those numbers drift a little each time it
+changes hands. Nothing in the code pushes a disease toward mildness. It falls
+out of the mechanics on its own, and it is now observable in a panel while you
+watch.
+
+New files: `js/data-plagues.js` (the registry - three seed diseases) and
+`js/plague.js` (the engine). Four hooks in `sim.js`, nothing else touched in
+the simulation.
+
+### What a plague does
+
+Each lineage has `transmission` (new hosts per year while infectious),
+`lethality` (deaths per year), `incubation` and `duration`. A host past
+incubation rolls once per tick to pass it to one susceptible neighbour within
+about three tiles; 2% of those hand-offs create a mutated strain with its own
+name, its own numbers and its own place in the panel. Recovering leaves immune
+memory keyed to the lineage root, worth `0.72^n` against a strain `n`
+mutations further along - so surviving matters, and a plague that keeps
+mutating keeps finding bodies.
+
+Damage runs through the existing `kind` system, so `Grit Lids` already shrugs
+off a silica bloom (`resist.silica 0.95`) and `Parthenogenesis` already makes
+every disease worse (`resist.disease -0.6`). **No plague names a trait**, same
+rule as disasters.
+
+Being sick costs beyond the deaths: infected creatures burn extra reserve and
+cannot breed. That, not the body count, is what empties a valley - it takes a
+generation out as well.
+
+### The result the doc predicted, measured
+
+`node tools/plaguetest.js glass 120 140` - Bloom of Glass starts at
+`spread 3.0, kills 0.55` and after ~50 lineages sits at `spread 8-12,
+kills 0.03-0.10`. It became a cold. Nothing selected for that; the strains
+that killed their hosts before finding the next one died in those hosts.
+
+Cordyceps Bloom does the opposite, because it has `burst: 1` - it infects a
+neighbour when its host dies, so lethality *is* transmission for that one, and
+its variants drift *more* vicious (0.95 -> 1.10 -> 1.36). Two opposite
+evolutionary regimes out of the same eleven lines of drift code.
+
+### Culls measured (population trough, evolved world)
+
+    Whisper Plague    51-73%     crowd disease, burns out, mutates a lot
+    Bloom of Glass    23-73%     goes endemic and harmless instead of dying
+    Cordyceps Bloom   83-97%     deliberately the worst thing in the game
+
+Cordyceps sits above the usual 60-90% band on purpose and is labelled as such.
+Variance is high because these are epidemics, not pulses.
+
+### Bugs found by running it
+
+1. **A plague could not dent a food-capped population.** Deaths were replaced
+   by births within the same year, so a working epidemic read as "nothing
+   happened". Fixed by making sickness block breeding and drain reserve.
+2. **Bursting bypassed mutation entirely.** Cordyceps spread almost only
+   through `burstFrom`, which called `infect` directly, so it never produced a
+   single variant. Both routes now go through `Sim.passOn`.
+3. **Bursting also bypassed immunity**, so no wave could ever run out of
+   hosts and Cordyceps swept the map every time. The partial-immunity roll
+   moved into `infect` where both routes see it.
+4. **Three different variants were all named "Whisper Plague II"** - the name
+   came from generation, and generations are not unique. There is now a
+   per-root sequence counter (`sim.plagueSeq`).
+5. **Variant names grew a tail** ("Bloom of Glass v16 v17 v18...") because the
+   name was derived from the parent's name by stripping a roman-numeral
+   suffix, which never matched the arabic fallback past gen 15. Each lineage
+   now carries its own `root`.
+
+### Verified how
+
+- `tools/plaguetest.js <base> <grow> <watch>` - new harness; prints the
+  population trough, peak infected, every lineage and how its numbers moved.
+- **Browser-verified** at <http://localhost:4173/tools/selftest.html>: no JS
+  errors before or after, 5 tabs, plague fired and ran 45 years, 54 lineages,
+  124 survivors carrying immune memory, panel showing 7 rows, 5247 ticks/s
+  (16x speed needs 192).
+- Screenshots of the real game with an outbreak running: the Plagues card
+  listing five strains with live numbers, and infection pips on the map.
+
+### Still not verified
+
+`file://` and touch on a real device - unchanged since checkpoint 1. The
+browser extension here refuses `file://` URLs outright. Nothing added in this
+checkpoint uses `fetch`, XHR, modules or any external resource, so it should be
+fine, but it wants a human to double-click `index.html` once.
+
+### Next - checkpoint 5
+
+The family-tree screen (the thing people screenshot) and copy-paste text save
+codes.

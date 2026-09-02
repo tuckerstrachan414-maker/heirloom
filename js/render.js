@@ -289,7 +289,8 @@
 
   // ---- the frame --------------------------------------------------------
   const FLASH_COLOR = { burned: '#ffca6a', starved: '#c9b48f', frozen: '#cfe8f5',
-                        cooked: '#ff9a5c', drowned: '#7fd4d0', died: '#e0d3bb' };
+                        cooked: '#ff9a5c', drowned: '#7fd4d0', died: '#e0d3bb',
+                        plague: '#c9a8e0' };
 
   Renderer.prototype.draw = function () {
     const ctx = this.ctx, sim = this.sim, w = this.world;
@@ -335,6 +336,14 @@
         ctx.globalAlpha = spr.alpha * (c.dormant ? 0.7 : (c.asleep ? 0.82 : 1));
         ctx.drawImage(spr.cv, Math.round(sx - s / 2), Math.round(sy - s / 2), s, s);
         ctx.globalAlpha = 1;
+      }
+
+      // A pip in the plague's own colour. Watching the colour spread across
+      // a valley is most of the point of having plagues at all.
+      if (c.inf) {
+        const ps = Math.max(2, Math.round(z * 0.22));
+        ctx.fillStyle = c.inf.p.color;
+        ctx.fillRect(Math.round(sx - ps / 2), Math.round(sy - size * 0.55 - ps), ps, ps);
       }
     }
 

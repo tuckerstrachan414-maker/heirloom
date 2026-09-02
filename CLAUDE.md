@@ -30,13 +30,15 @@ automated checks go through HTTP.
     js/rng.js           seeded RNG (mulberry32)
     js/data-traits.js   THE TRAIT REGISTRY - 26 rows
     js/data-strains.js  THE STRAIN REGISTRY - 12 synergies + 6 flaws
-    js/data-disasters.js THE DISASTER REGISTRY - 21 offered + 1 internal
+    js/data-plagues.js  THE PLAGUE REGISTRY - 3 seed diseases
     js/data-biomes.js   biome table
-    js/data-disasters.js THE DISASTER REGISTRY
+    js/data-disasters.js THE DISASTER REGISTRY - 21 written + 3 generated
+                        from the plague rows, + 1 internal
     js/world.js         tiles, terrain generation, food, fire, climate
     js/creature.js      genome -> derived stats (window.Genome)
     js/species.js       species records, trait-derived naming, colour
     js/sim.js           the tick: movement, eating, hazards, breeding, census
+    js/plague.js        infection, contagion, mutation, immune memory
     js/log.js           the log and the narrator
     js/render.js        terrain cache + trait-baked creature sprites + camera
     js/ui.js            panels, species list, inspector, disaster buttons
@@ -47,6 +49,7 @@ automated checks go through HTTP.
     tools/profile.js    per-phase timing
     tools/selftest.html in-browser smoke test; reports numbers, not vibes
     tools/patch.js      exact-string file patcher (there is no Edit tool here)
+    tools/plaguetest.js drops a plague on a grown world and follows the lineages
     tools/visual-driver.js  drives the real game for screenshots
 
 ## Invariants - do not break these
@@ -77,7 +80,21 @@ automated checks go through HTTP.
    changed - climate values, frozen tiles, flooded tiles - is still changed
    when the effect is removed, and `update` is no longer running to put it
    back. An ice age that forgot this left the world frozen permanently.
-10. **Target cull is 60-90%,** measured as the population *trough*, not the
+10. **Nothing makes a plague evolve mild. It has to stay emergent.** A
+    strain's numbers only ever drift symmetrically (`Plague.drift`); which
+    strains survive is decided entirely by whether they find a new host
+    before killing the one they have. Never add a rule that nudges
+    lethality down - the whole point is that the player watches it happen
+    and no line of code did it. `Cordyceps Bloom` drifting *more* lethal,
+    because `burst` makes dying its way of travelling, is the proof the
+    mechanism is real and not a scripted story.
+
+11. **Every route a plague takes to a new host goes through `Sim.passOn`.**
+    It is where mutation happens, and `Sim.infect` is where immunity is
+    rolled. Bursting once bypassed both: no variants ever appeared and no
+    epidemic could run out of hosts.
+
+12. **Target cull is 60-90%,** measured as the population *trough*, not the
     figure some years later - the world refills fast enough to hide a real
     disaster completely. Habitat disasters (Deluge, Tsunami, Sea Rise) cull far
     less on purpose: they take ground rather than lives, and they exist to
@@ -92,9 +109,9 @@ automated checks go through HTTP.
     safeFloor      12        below this, the mercy curve protects a species
     mutChance      0.08      per birth (the doc's number)
     breedAt/Cost   0.62/0.34 fraction of energy reserve to breed / to spend
-    eatRate        1.55      how much over upkeep a creature tries to take
-    deplete        0.55      how hard grazing strips a tile
-    checkpoint     3         which disaster rows the UI offers
+    eatRate        1.40      how much over upkeep a creature tries to take
+    deplete        0.32      how hard grazing strips a tile
+    checkpoint     4         which disaster rows the UI offers
     mateChoosiness 9         weight on genome similarity when picking a mate.
                              LOAD-BEARING: without it a novel combination is
                              halved every generation by mating back into the
@@ -110,6 +127,16 @@ automated checks go through HTTP.
 species norm, `minGroup` creatures holding that genome, sustained `years` years,
 from a parent of at least `minParent`.
 
+`js/plague.js`: `MEMORY_DECAY` (0.72) is what surviving a strain is worth
+against one a mutation further along, and it is the knob that decides
+whether an epidemic burns out or grinds on forever. `DRIFT.chance` (0.02,
+in `js/data-plagues.js`) is how often changing hands makes a new lineage;
+`MAX_LIVE` (14) caps how many exist at once.
+
+A plague seed row is worth roughly `transmission x (time it survives while
+infectious) + burst` new cases per host. Under about 1 it dies in its first
+few bodies - `tools/plaguetest.js` prints that number as `R`.
+
 `js/world.js`: `FIRE_FALL` / `FIRE_MIN` bound how far a fire carries. A fire
 front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
 `FIRE_FALL` toward 1 makes fires eat the whole map.
@@ -122,6 +149,7 @@ front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
     node tools/splittest.js <seed> <years> <fireEvery>  # why is nothing speciating?
     node tools/disastertest.js                         # fires all 21, reports cull %
     node tools/maturetest.js <id> <growYears>          # fire one at an evolved world
+    node tools/plaguetest.js <base> <grow> <watch>     # follow a plague's lineages
 
 `disastertest.js` takes about 90 seconds - run it in the background. It is the
 only thing that catches a disaster row that throws, does nothing, or wipes the
@@ -145,6 +173,11 @@ not reload the page - always bump the `?r=` query too.
 - There is no Edit/Write tool in this setup; files are written with `cat`
   heredocs and patched with `node tools/patch.js`.
 - Bash heredocs here truncate around 10KB - write long files in chunks.
+- **A quoted heredoc still collapses a doubled backslash.** Writing a JS
+  patch script containing `\s` delivers `s`, which the JS string then
+  reads as plain `s`, and the patch silently fails to match. Never put a
+  regex escape inside a heredoc; rewrite the whole file instead, or build
+  the character with `String.fromCharCode`.
 - **Never nest a Python heredoc inside a bash heredoc.** The double layer
   strips a backslash, which silently turned `join('\n')` into a raw newline
   inside a string literal and produced an unreachable parse error.

@@ -3,7 +3,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const win={};win.window=win;win.document={createElement:()=>({getContext:()=>({})})};
 const ctx=vm.createContext(win);
-for(const f of ['rng','data-traits','data-strains','data-biomes','data-disasters','world','creature','species','sim','log'])
+for(const f of ['rng','data-traits','data-strains','data-plagues','data-biomes','data-disasters','world','creature','species','sim','plague','log'])
   vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js',f+'.js'),'utf8'),ctx,{filename:f});
 
 const T=win.Traits, TICK=1/24;

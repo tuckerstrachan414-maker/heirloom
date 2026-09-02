@@ -39,6 +39,8 @@
       sim.onSplit = this.narrator.split.bind(this.narrator);
       sim.onStrain = this.narrator.strain.bind(this.narrator);
       sim.onEffectEnd = this.narrator.effectEnd.bind(this.narrator);
+      sim.onPlague = this.narrator.plague.bind(this.narrator);
+      sim.onPlagueEnd = this.narrator.plagueEnd.bind(this.narrator);
 
       this.log.say('A world is seeded.', 'event', 0);
 

@@ -18,6 +18,7 @@
         year: $('statYear'), pop: $('statPop'), species: $('statSpecies'), gen: $('statGen'),
         list: $('speciesList'), inspect: $('inspect'), inspTitle: $('inspTitle'),
         inspBody: $('inspBody'), disasters: $('disasters'), hint: $('hint'),
+        plagues: $('plagues'), plagueList: $('plagueList'),
         cats: $('toolcats'),
         toast: $('toast'), canvas: $('world')
       };
@@ -40,6 +41,36 @@
       const sig = sim.species.map(function (s) { return s.id + ':' + s.pop; }).join(',');
       if (sig !== this.lastSpeciesSig) { this.lastSpeciesSig = sig; this.refreshSpecies(); }
       if (this.selCreature || this.selSpecies) this.refreshInspect();
+      this.refreshPlagues();
+    },
+
+    // The panel is where the disease stops being scenery: the four numbers
+    // move on their own, and a strain that got milder says so in the row.
+    MAXROWS: 6,
+
+    refreshPlagues: function () {
+      const live = this.game.sim.livePlagues();
+      const sig = live.length + '|' + live.slice(0, this.MAXROWS).map(function (p) {
+        return p.id + ':' + p.active;
+      }).join(',');
+      if (sig === this.lastPlagueSig) return;
+      this.lastPlagueSig = sig;
+      this.el.plagues.classList.toggle('hidden', live.length === 0);
+      if (!live.length) { this.el.plagueList.innerHTML = ''; return; }
+
+      let h = '';
+      for (const p of live.slice(0, this.MAXROWS)) {
+        h += '<div class="pl' + (p.active < 3 ? ' fading' : '') + '">' +
+             '<div class="pn"><i class="dot" style="background:' + p.color + '"></i>' +
+             '<span>' + esc(p.name) + '</span><b>' + p.active + '</b></div>' +
+             '<div class="pv">spreads ' + p.transmission.toFixed(1) +
+             ' &middot; kills ' + p.lethality.toFixed(2) +
+             ' &middot; ' + p.duration.toFixed(1) + 'y' +
+             ' &middot; R' + p.spreadRate().toFixed(1) + '</div></div>';
+      }
+      const rest = live.length - this.MAXROWS;
+      if (rest > 0) h += '<div class="pmore">and ' + rest + ' more strain' + (rest > 1 ? 's' : '') + '</div>';
+      this.el.plagueList.innerHTML = h;
     },
 
     refreshSpecies: function () {
@@ -98,6 +129,17 @@
       h += kv('Upkeep', d.upkeep.toFixed(1) + ' food/yr');
       h += kv('Speed', d.speed.toFixed(1));
       h += kv('State', c.dormant ? 'dormant' : c.asleep ? 'asleep' : c.age < d.maturity ? 'juvenile' : 'active');
+      if (c.inf) {
+        const p = c.inf.p, r = d.resist[p.kind] || 0;
+        h += kv('Sick with', '<b style="color:' + p.color + '">' + esc(p.name) + '</b>');
+        h += kv('For', c.inf.t.toFixed(1) + ' of ' + p.duration.toFixed(1) + ' yr');
+        if (r || c.inf.imm) {
+          h += kv('Shrugging off', Math.round((1 - (1 - r) * (1 - c.inf.imm)) * 100) + '%');
+        }
+      } else if (c.imm) {
+        const had = Object.keys(c.imm);
+        if (had.length) h += kv('Survived', had.length + ' plague' + (had.length > 1 ? 's' : ''));
+      }
       h += strainBlocks(d.strains, d.flaws);
       h += '<div class="sub">Traits ' + d.traits.length + ' / ' + global.Genome.SLOTS + '</div>';
       h += traitBlocks(d.traits);
@@ -147,6 +189,7 @@
     // ---- disasters ------------------------------------------------------
     // Twenty-odd buttons in one bar is unusable, so they sit behind four tabs.
     CATS: [{ id: 'sudden', label: 'Sudden' }, { id: 'slow', label: 'Slow' },
+           { id: 'plague', label: 'Plagues' },
            { id: 'good', label: 'Fortune' }, { id: 'player', label: 'Yours' }],
 
     buildDisasters: function () {

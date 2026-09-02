@@ -213,6 +213,35 @@
     this.quiet = 0;
   };
 
+  // A plague changing is the moment the player is supposed to notice that the
+  // disease is evolving too. Say what changed, never why - nothing chose it.
+  Narrator.prototype.plague = function (p) {
+    const y = Math.floor(this.sim.year), par = p.parent;
+    this.log.say(this.stamp(y) + 'Something has changed in the ' + p.root.toLowerCase() +
+                 '. They are calling this one ' + p.name + '.', 'split', y);
+    const milder = p.lethality < par.lethality * 0.9;
+    const worse = p.lethality > par.lethality * 1.1;
+    const faster = p.transmission > par.transmission * 1.1;
+    let s;
+    if (milder && faster) s = 'It kills fewer of them and it travels further. That is usually how it goes.';
+    else if (worse && faster) s = 'It kills more of them, and it is quicker about finding the next one.';
+    else if (milder) s = 'It is gentler than the thing it came from.';
+    else if (worse) s = 'It is worse than the thing it came from.';
+    else if (faster) s = 'It moves faster than the thing it came from.';
+    else s = 'Surviving the last one is no help against this one.';
+    this.log.say(s, 'plain', y);
+    this.quiet = 0;
+  };
+
+  Narrator.prototype.plagueEnd = function (p) {
+    if (p.killed < 20) return;
+    const y = Math.floor(this.sim.year);
+    let s = p.name + ' burns itself out. It took ' + p.killed;
+    s += p.recovered ? ', and ' + p.recovered + ' walked away from it.' : '.';
+    this.log.say(this.stamp(y) + s, 'death', y);
+    this.quiet = 0;
+  };
+
   const IDLE = ['The world is quiet.',
                 'Nothing much happens for a while.',
                 'Grass returns to the burnt ground.',

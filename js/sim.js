@@ -22,7 +22,7 @@
     mateChoosiness: 9,   // weight on genome similarity when picking a mate
     eatRate: 1.40,       // how much more than upkeep a creature tries to take
     deplete: 0.32,       // how hard grazing strips a tile
-    checkpoint: 3
+    checkpoint: 4
   };
 
   // Rates are per year and applied as rate*dt, so keep rate*dt well under 1
@@ -46,11 +46,16 @@
     this.births = [];
     // `total` is every death; the rest are causes. Keeping a separate total
     // matters because 'died' (old age) is itself one of the causes.
-    this.stats = { born: 0, total: 0, died: 0, burned: 0, starved: 0, frozen: 0, cooked: 0, drowned: 0 };
+    this.stats = { born: 0, total: 0, died: 0, burned: 0, starved: 0, frozen: 0, cooked: 0, drowned: 0, plague: 0 };
     this.aliveCount = 0;
     this.newGenomes = 0;
     this.events = [];
     this.effects = [];
+    // Plagues are organisms of their own; js/plague.js owns all of it but
+    // these three fields and four hooks.
+    this.plagues = [];
+    this.pastPlagues = [];
+    this.nextPlagueId = 1;
     this.yearStats = null;
     this.resetYearStats();
     this.shakeAmt = 0;
@@ -66,7 +71,7 @@
   }
 
   Sim.prototype.resetYearStats = function () {
-    this.yearStats = { born: 0, total: 0, died: 0, burned: 0, starved: 0, frozen: 0, cooked: 0, drowned: 0 };
+    this.yearStats = { born: 0, total: 0, died: 0, burned: 0, starved: 0, frozen: 0, cooked: 0, drowned: 0, plague: 0 };
   };
 
   Sim.prototype.shake = function (a) { this.shakeAmt = Math.max(this.shakeAmt, a); };
@@ -276,6 +281,7 @@
     if (!c.alive) return;
     c.alive = false;
     c.cause = cause;
+    if (c.inf) { c.inf.p.active--; c.inf = null; }
     this.aliveCount--;
     c.sp.pop--; c.sp.died++;
     this.stats.total++; this.yearStats.total++;
@@ -358,6 +364,7 @@
     c.asleep = (d.nocturnal && w.lightAt(i) > 0.32) ? 1 : 0;
 
     if (this.hazards(c, dt)) return;
+    if (c.inf && this.stepInfection(c, dt)) return;
 
     if (!c.dormant && !c.asleep) this.wander(c, dt);
 
@@ -400,7 +407,7 @@
 
     // --- breed
     c.cool -= dt;
-    if (c.cool > 0 || c.dormant || c.asleep) return;
+    if (c.cool > 0 || c.dormant || c.asleep || c.inf) return;
     if (c.age < d.maturity || c.energy < d.reserve * CFG.breedAt) return;
     if (this.aliveCount >= CFG.popCap) return;
     if (d.burnBirth && w.biome[i] !== global.Biomes.I.burnt && w.ash[i] < 0.3) return;
@@ -555,6 +562,7 @@
       sp.coreMask = core;
       if (sp.pop > 0) this.checkSplit(sp);
     }
+    this.plagueCensus();
   };
 
   Sim.prototype.livingSpecies = function () {
