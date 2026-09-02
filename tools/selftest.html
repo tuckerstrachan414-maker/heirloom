@@ -1,0 +1,80 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>HEIRLOOM selftest</title>
+<style>body{background:#111;color:#ddd;font:13px monospace;margin:0}
+#result{padding:10px;white-space:pre-wrap;font-size:14px}
+#stage{position:fixed;left:0;top:0;width:640px;height:420px;opacity:0.001;pointer-events:none}
+#world{width:640px;height:420px;display:block}</style></head><body>
+<pre id="result">running...</pre>
+<div id="stage">
+  <canvas id="world"></canvas>
+  <div id="topbar"><span id="statYear"></span><span id="statPop"></span><span id="statSpecies"></span><span id="statGen"></span>
+    <span id="speeds"><button data-speed="0"></button><button data-speed="1"></button><button data-speed="4"></button><button data-speed="16"></button></span>
+    <button id="btnNew"></button></div>
+  <div id="species"><div id="speciesList"></div></div>
+  <div id="inspect" class="hidden"><span id="inspTitle"></span><button id="inspClose"></button><div id="inspBody"></div></div>
+  <div id="logcard"><div id="log"></div></div>
+  <div id="tools"><div id="disasters"></div><div id="hint"></div></div>
+  <div id="toast"></div>
+</div>
+<script>
+window.__errors = [];
+window.onerror = function (m, s, l, c) { window.__errors.push(m + ' @' + (s||'').split('/').pop() + ':' + l); };
+window.addEventListener('unhandledrejection', function(e){ window.__errors.push('promise: ' + e.reason); });
+</script>
+<script src="../js/rng.js"></script>
+<script src="../js/data-traits.js"></script>
+<script src="../js/data-biomes.js"></script>
+<script src="../js/data-disasters.js"></script>
+<script src="../js/world.js"></script>
+<script src="../js/creature.js"></script>
+<script src="../js/species.js"></script>
+<script src="../js/sim.js"></script>
+<script src="../js/log.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/main.js"></script>
+<script>
+var OUT=[], NL=String.fromCharCode(10), R0=document.getElementById('result');
+function say(t){OUT.push(t);R0.textContent=OUT.join(NL);}
+function step(label,fn){try{say(label+' : '+fn());}catch(e){say(label+' : THREW '+e.message);}}
+function colours(cv,n){
+  var g=cv.getContext('2d'), d=g.getImageData(0,0,cv.width,cv.height).data, seen={}, c=0;
+  var st=Math.max(4,((d.length/4/n)|0)*4);
+  for(var i=0;i<d.length;i+=st){var k=(d[i]<<16)|(d[i+1]<<8)|d[i+2];if(!seen[k]){seen[k]=1;c++;}}
+  return c;
+}
+function ashTiles(S){var n=0;for(var i=0;i<S.world.n;i++)if(S.world.ash[i]>0.05)n++;return n;}
+setTimeout(function(){
+  OUT.length=0;
+  var G=window.Game, S=G&&G.sim, R=G&&G.renderer;
+  say('errors      : '+(window.__errors.length?window.__errors.join(' | '):'none'));
+  if(!S){say('GAME DID NOT START');return;}
+  say('raf running : '+(S.year>0.5?'yes, reached year '+S.year.toFixed(1):'NO (year '+S.year.toFixed(2)+') - background tab throttling'));
+  step('alive       ',function(){return S.aliveCount+'  born '+S.stats.born+'  deaths '+S.stats.total;});
+  step('species     ',function(){return S.species.map(function(s){return s.plural()+' '+s.pop;}).join(', ');});
+  step('world/canvas',function(){return S.world.w+'x'+S.world.h+'  canvas '+R.canvas.width+'x'+R.canvas.height+'  dpr '+R.dpr+'  zoom '+R.cam.z.toFixed(1);});
+  step('terrain     ',function(){return R.terrain.width+'x'+R.terrain.height+', '+colours(R.terrain,4000)+' distinct colours';});
+  step('draw()      ',function(){R.draw();return 'ok, screen shows '+colours(R.canvas,4000)+' distinct colours';});
+  step('sprites     ',function(){return R.sprites.size+' baked from genomes';});
+  step('ui          ',function(){return document.getElementById('speciesList').children.length+' species rows, '+document.getElementById('disasters').children.length+' disaster buttons';});
+  step('log         ',function(){return G.log.lines.length+' lines';});
+  step('120y by hand',function(){
+    var t0=performance.now(); for(var i=0;i<24*120;i++) S.tick(1/24);
+    var ms=performance.now()-t0;
+    return 'year '+S.year.toFixed(0)+'  alive '+S.aliveCount+'  born '+S.stats.born+'  ('+(24*120/(ms/1000)).toFixed(0)+' ticks/s in-browser)';
+  });
+  var before=0;
+  step('set a fire  ',function(){
+    before=S.aliveCount;
+    var sp=S.livingSpecies()[0];
+    var line=G.fire('wildfire', sp?{x:Math.round(sp.cx),y:Math.round(sp.cy)}:{});
+    return (line||'FAILED TO IGNITE')+'   '+S.world.fires.length+' tiles alight';
+  });
+  step('run 6y more ',function(){
+    for(var i=0;i<24*6;i++) S.tick(1/24);
+    return 'alive '+S.aliveCount+' (was '+before+')  burned total '+S.stats.burned+'  ash tiles '+ashTiles(S);
+  });
+  step('redraw      ',function(){R.draw();return 'ok, '+colours(R.canvas,4000)+' distinct colours';});
+  step('log tail    ',function(){return G.log.lines.slice(-5).map(function(l){return l.text;}).join('  //  ');});
+  say('errors after: '+(window.__errors.length?window.__errors.join(' | '):'none'));
+},2000);
+</script></body></html>

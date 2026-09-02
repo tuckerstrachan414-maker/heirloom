@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>HEIRLOOM</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="world"></canvas>
+
+<div id="topbar">
+  <span class="brand">HEIRLOOM</span>
+  <span class="stat"><b id="statYear">0</b><i>year</i></span>
+  <span class="stat"><b id="statPop">0</b><i>alive</i></span>
+  <span class="stat"><b id="statSpecies">0</b><i>species</i></span>
+  <span class="stat"><b id="statGen">0</b><i>gens</i></span>
+  <span class="spacer"></span>
+  <span class="speeds" id="speeds">
+    <button data-speed="0" title="Pause (space)">||</button>
+    <button data-speed="1" class="on">1&times;</button>
+    <button data-speed="4">4&times;</button>
+    <button data-speed="16">16&times;</button>
+  </span>
+  <button id="btnNew" class="ghost" title="New world">new world</button>
+</div>
+
+<div id="species" class="card">
+  <h2>Species</h2>
+  <div id="speciesList"></div>
+</div>
+
+<div id="inspect" class="card hidden">
+  <h2><span id="inspTitle">Creature</span><button id="inspClose" class="x">&times;</button></h2>
+  <div id="inspBody"></div>
+</div>
+
+<div id="logcard" class="card">
+  <h2>The record</h2>
+  <div id="log"></div>
+</div>
+
+<div id="tools">
+  <div class="toolrow" id="disasters"></div>
+  <div class="hint" id="hint">Click the map to set the fire.</div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/rng.js"></script>
+<script src="js/data-traits.js"></script>
+<script src="js/data-biomes.js"></script>
+<script src="js/data-disasters.js"></script>
+<script src="js/world.js"></script>
+<script src="js/creature.js"></script>
+<script src="js/species.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/log.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
