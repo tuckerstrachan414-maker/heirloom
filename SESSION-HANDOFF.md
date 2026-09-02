@@ -495,3 +495,26 @@ in a desktop browser at iPhone dimensions, which catches overflow and overlap
 but not iOS Safari's own chrome, not whether Quick Look in the Files app runs
 the page, not pinch-zoom feel, and not whether tap-to-place a disaster is
 comfortable. That is exactly what the playtest is for.
+
+---
+
+## 2026-09-02 - Published, because a file does not work on a phone
+
+The single-file build did not run on Tucker's iPhone. The cause is iOS, not the
+bundle: tapping an `.html` in the Files app opens **Quick Look**, which renders
+the markup but does not execute JavaScript. A self-contained file is the right
+answer for a laptop and the wrong one for a phone; only a URL works there.
+
+Publishing it as a Claude Artifact was the next thing tried and the tool refused
+outright - reading a file to publish is disabled in this session. So, with
+Tucker's go-ahead (public source was his call, not mine):
+
+**<https://tuckerstrachan414-maker.github.io/heirloom/>**
+
+GitHub Pages, `main` at the repo root, so **`git push` is now the deploy**. The
+checkpoint tags went up with it. `HEIRLOOM.html` and `HEIRLOOM.artifact.html`
+stay gitignored and regenerable from `tools/bundle.js`.
+
+The repository is public, which means `HEIRLOOM-design.md`, `CLAUDE.md` and this
+handoff are public too. That is fine for a free browser toy but worth knowing
+before anything sensitive goes in them.

@@ -23,6 +23,19 @@ For verification only, `node tools/serve.js` serves it on
 <http://localhost:4173>; the browser extension refuses `file://` navigation, so
 automated checks go through HTTP.
 
+## Where it is published
+
+<https://tuckerstrachan414-maker.github.io/heirloom/> - GitHub Pages, served
+from `main` at the repo root, so **`git push` is the deploy**. That URL is how
+Tucker plays it on a phone.
+
+`node tools/bundle.js` also builds `HEIRLOOM.html`, the whole game inlined into
+one self-contained file, and `--artifact` builds the same thing without the
+document shell for hosts that supply their own. Both are gitignored and
+regenerable. Note that a single `.html` **does not work on an iPhone**: iOS
+opens it in Quick Look, which renders the markup but does not run the scripts.
+A hosted URL is the only thing that works there - that is why Pages exists.
+
 ## Layout
 
     index.html          DOM shell; loads every script in dependency order
