@@ -128,6 +128,11 @@
     }
     if (!took) { this.plagues.pop(); return null; }
 
+    // For the almanac only. Read nowhere in the tick.
+    if (this.seenPlagues && this.seenPlagues[base] === undefined) {
+      this.seenPlagues[base] = Math.floor(this.year);
+    }
+
     const where = this.regionName(near[0].c.x, near[0].c.y);
     return 'Something is wrong with ' + global.numWord(took) + ' of them in ' +
            where + '. ' + seed.desc;

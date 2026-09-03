@@ -28,6 +28,7 @@
       this.el.sheet.onclick = function (e) { if (e.target === UI.el.sheet) UI.closeSheet(); };
       $('btnTree').onclick = function () { UI.showTree(); };
       $('btnSave').onclick = function () { UI.showSave(); };
+      $('btnAlmanac').onclick = function () { UI.showAlmanac(); };
 
       // On a phone there is no room for the lists and the map at once, so both
       // lists fold to their title bar. They start folded there and open on a
@@ -222,6 +223,34 @@
       const t = global.Tree.build(this.game.sim, this.game.seedText);
       this.openSheet('The family tree',
         '<div class="treehead">' + t.head + '</div><div class="treeplot">' + t.svg + '</div>', true);
+    },
+
+    // ---- the almanac ----------------------------------------------------
+    // Everything in the game, plus what this world has shown you. It reads the
+    // registries and the sim; it writes to neither.
+    almTab: 'traits',
+    almShowAll: false,
+
+    showAlmanac: function (tab) {
+      const A = global.Almanac;
+      this.almTab = tab || this.almTab;
+      let bar = '<div class="almtabs">';
+      for (const t of A.TABS) {
+        bar += '<button class="almtab' + (t.id === this.almTab ? ' on' : '') +
+               '" data-tab="' + t.id + '">' + t.label + '</button>';
+      }
+      bar += '</div>';
+      this.openSheet('The almanac',
+        bar + '<div class="almbody">' + A.page(this.game.sim, this.almTab, this.almShowAll) + '</div>',
+        true);
+      this.el.sheetBody.querySelectorAll('.almtab').forEach(function (b) {
+        b.onclick = function () { UI.showAlmanac(b.dataset.tab); };
+      });
+      const rev = document.getElementById('almReveal');
+      if (rev) rev.onclick = function () {
+        UI.almShowAll = !UI.almShowAll;
+        UI.showAlmanac(UI.almTab);
+      };
     },
 
     showSave: function () {

@@ -39,6 +39,18 @@
     // Checkpoint 2 opens the whole registry. Pass opts.pool to narrow it.
     this.pool = opts.pool || T.ALL.map(function (t) { return t.id; });
     this.discovered = new Set();
+
+    // What this world has actually shown the player. The almanac reads these;
+    // NOTHING in the tick may branch on them. They are written after the fact
+    // from state the sim already has, so a save code replays the same world
+    // whether the almanac was ever opened or not.
+    this.seenTraits = 0;                                   // bitmask, same bits as a genome
+    this.traitYear = new Array(T.ALL.length).fill(-1);
+    this.seenStrains = Object.create(null);                // id -> year, strains AND flaws
+    this.seenBiomes = 0;
+    this.biomeCount = new Int32Array(global.Biomes.ALL.length);
+    this.seenPlagues = Object.create(null);                // seed base -> year released
+
     this.log = opts.log;
     this.year = 0;
     this.lastYearMark = 0;
@@ -524,12 +536,36 @@
       sp.traitCount.fill(0);
       sp.pop = 0; sp.sx = 0; sp.sy = 0;
     }
+    const yr = Math.floor(this.year);
+    let seen = this.seenTraits;
     for (const c of this.creatures) {
       if (!c.alive) continue;
       c.sp.pop++; c.sp.sx += c.x; c.sp.sy += c.y;
       const tc = c.sp.traitCount;
       let m = c.mask, i = 0;
       while (m) { if (m & 1) tc[i]++; m >>>= 1; i++; }
+      seen |= c.mask;
+      // Strains for the almanac are recorded here rather than at birth, so a
+      // flaw and an arriving invasive species count too. `discovered` above is
+      // the narrator's own record and stays exactly as it was - moving it here
+      // would change which line the log reads out and when.
+      for (const s of c.d.strains) if (this.seenStrains[s.id] === undefined) this.seenStrains[s.id] = yr;
+      for (const s of c.d.flaws) if (this.seenStrains[s.id] === undefined) this.seenStrains[s.id] = yr;
+    }
+    if (seen !== this.seenTraits) {
+      for (let i = 0; i < this.traitYear.length; i++) {
+        if (this.traitYear[i] < 0 && (seen & (1 << i))) this.traitYear[i] = yr;
+      }
+      this.seenTraits = seen;
+    }
+    // One pass over the map a year: what the world is made of now, and what it
+    // has ever been made of. Cheap next to the creature loop, and it is the
+    // only place that would notice lava appearing and cooling again.
+    this.biomeCount.fill(0);
+    const bio = this.world.biome;
+    for (let i = 0; i < bio.length; i++) this.biomeCount[bio[i]]++;
+    for (let i = 0; i < this.biomeCount.length; i++) {
+      if (this.biomeCount[i] > 0) this.seenBiomes |= (1 << i);
     }
     for (const sp of this.species) {
       if (sp.pop > 0) { sp.cx = sp.sx / sp.pop; sp.cy = sp.sy / sp.pop; }

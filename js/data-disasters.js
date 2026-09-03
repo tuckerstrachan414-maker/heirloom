@@ -599,7 +599,9 @@
   for (const s of global.PlagueData.SEEDS) {
     DISASTERS.push({
       id: 'plague-' + s.base, name: s.name, kind: 'plague', aim: 'point', cp: 4,
-      tags: ['plague'], color: s.color,
+      // The seed's damage kind rides along in the tags, so the almanac can
+      // work out what shrugs this one off the same way it does for a fire.
+      tags: ['plague', s.kind], color: s.color,
       desc: s.desc,
       trigger: function (sim, opts) {
         const p = aim(sim, opts, null);

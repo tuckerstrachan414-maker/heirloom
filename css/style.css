@@ -303,3 +303,86 @@ button.ghost:hover{color:var(--ink)}
   #plagues{width:210px;max-height:29vh}
   #inspect{width:220px}
 }
+
+/* ---- the almanac --------------------------------------------------------
+   Everything in the game, in the same sheet the tree and the save code use.
+   Two columns of cards on a desktop, one on a phone. A card the world has
+   actually shown you is lit; one it has not is dimmed and says so.          */
+.almtabs{
+  display:flex;gap:3px;padding:3px;margin:0 0 10px;border-radius:7px;
+  background:rgba(20,18,15,0.6);border:1px solid var(--edge);
+  position:sticky;top:0;z-index:2;
+}
+.almtabs .almtab{
+  flex:1;padding:5px 10px;font-size:10.5px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;background:transparent;border-color:transparent;
+  color:#b0a692;border-radius:5px;white-space:nowrap;
+}
+.almtabs .almtab:hover{color:var(--ink);background:rgba(217,164,65,0.08)}
+.almtabs .almtab.on{color:#241c10;background:var(--gold);border-color:var(--gold)}
+
+.almhead{display:flex;align-items:flex-start;gap:14px;margin:0 2px 12px}
+.almhead p{
+  margin:0;flex:1;font:13px/1.55 Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  color:#c8bda4;
+}
+.almcount{
+  flex:0 0 auto;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--edge);border-radius:5px;
+  padding:5px 9px;white-space:nowrap;
+}
+.almcount b{color:var(--gold);font-size:13px;font-weight:600}
+
+.almsub{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  margin:16px 2px 6px;padding-bottom:4px;border-bottom:1px solid rgba(217,164,65,0.13);
+}
+.almtoggle{margin:0 2px 10px}
+.almtoggle button{font-size:11px;padding:4px 10px;color:var(--muted)}
+.almtoggle button:hover{color:var(--ink)}
+
+.almgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.alm{
+  padding:8px 10px 9px;border-radius:0 5px 5px 0;
+  background:rgba(60,52,42,0.26);border-left:2px solid rgba(217,164,65,0.28);
+  opacity:.62;transition:opacity .12s;
+}
+.alm.got{opacity:1;background:rgba(60,52,42,0.46);border-left-color:var(--gold)}
+.alm.strain.got{background:linear-gradient(90deg,rgba(217,164,65,0.20),rgba(217,164,65,0.05))}
+.alm.flaw{border-left-color:#7a4838}
+.alm.flaw.got{background:rgba(120,80,70,0.20);border-left-color:#a86048}
+.alm.dis-good{border-left-color:rgba(147,177,105,0.5)}
+.alm.dis-good.got{border-left-color:var(--green)}
+.alm.dis-slow{border-left-color:rgba(95,168,162,0.5)}
+.alm.dis-slow.got{border-left-color:var(--teal)}
+.alm.dis-plague,.alm.plague{border-left-color:rgba(185,168,216,0.5)}
+.alm.dis-plague.got,.alm.plague.got{border-left-color:#b9a8d8}
+
+.alm .almn{
+  display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;color:#f0e4c8;
+}
+.alm .almn em{
+  margin-left:auto;font-style:normal;font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold);white-space:nowrap;
+}
+.almswatch{width:9px;height:9px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,0.5)}
+.alm .almd{color:#c0b6a0;font-size:11.5px;line-height:1.4;margin-top:3px}
+.alm .almsnag{color:var(--rust);font-size:11px;line-height:1.4;margin-top:2px}
+.alm .almline{font-size:11px;line-height:1.4;margin-top:3px;color:#bdb3a0}
+.alm .almline span{color:var(--muted);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase}
+.alm .almline.bad{color:#d09a86}
+.alm .almseen{
+  font-size:10.5px;line-height:1.35;margin-top:6px;padding-top:5px;
+  border-top:1px solid rgba(217,164,65,0.12);
+}
+.alm .almseen.got{color:var(--gold)}
+.alm .almseen.not{color:var(--muted);font-style:italic}
+
+@media (max-width:760px){
+  .almgrid{grid-template-columns:minmax(0,1fr)}
+  .almhead{flex-direction:column;gap:7px}
+  /* Five tabs will not fit one phone-width row. Wrapping to two rows beats
+     a sideways scroll nobody can see is there. */
+  .almtabs{flex-wrap:wrap;gap:2px}
+  .almtabs .almtab{flex:1 0 auto;padding:5px 8px;font-size:10px;letter-spacing:.1em}
+}
