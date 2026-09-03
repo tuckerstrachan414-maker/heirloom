@@ -227,6 +227,7 @@
           else { global.UI.disarm(); global.UI.clearSelection(); }
         }
         else if (e.key === 't' || e.key === 'T') global.UI.showTree();
+        else if (e.key === 'a' || e.key === 'A') global.UI.showAlmanac();
       });
 
       const onResize = function () {

@@ -518,3 +518,83 @@ stay gitignored and regenerable from `tools/bundle.js`.
 The repository is public, which means `HEIRLOOM-design.md`, `CLAUDE.md` and this
 handoff are public too. That is fine for a free browser toy but worth knowing
 before anything sensitive goes in them.
+
+---
+
+## 2026-09-03 - The almanac
+
+The game had no way to answer "what is any of this?". Traits and strains were
+only ever visible on a creature you happened to have selected, disasters
+explained themselves in a `title=` tooltip that does not exist on a phone at
+all, and biomes and plague numbers were not visible anywhere. So: **the
+almanac** - one sheet, five tabs, on `the almanac` in the top bar and the `a`
+key.
+
+### What it is
+
+`js/almanac.js` renders each registry as a page of cards:
+
+- **Traits** - all 26, with the cost in food/year against the 2.2 a plain
+  creature burns, what it does, its snag, and what it shrugs off or is *worse*
+  against (read off `resist`, said in words: "the ground shaking", not `quake`).
+- **Strains** - the 12 synergies and 6 flaws. An undiscovered row shows its
+  name and nothing else; finding one is meant to feel like finding something.
+  A `Show what I have not found` button opens the lot for anyone who would
+  rather just read the book.
+- **Disasters** - all 24 offered at this checkpoint: what it does, whether you
+  aim it, and **what tends to survive it**.
+- **The land** - all 12 biomes, food against upkeep in plain language, going
+  and temperature, whether it burns, and what share of the map it is right now.
+- **Plagues** - the three seed rows with their R, and what this world's
+  lineages did with them.
+
+Every card also carries what *this* world has shown you - "First appeared in
+year 33", "Found in year 118", "You have used it 3 times", "29% of the map
+right now" - and dims if it has not shown you at all. The header of each tab
+counts it: 11 of 26, 4 of 18.
+
+### Two things worth knowing
+
+**"What tends to survive it" is derived, never written down.** A disaster's
+`tags` are matched against trait `resist` keys, so Wildfire lists Ashlung
+without either row mentioning the other. That is invariant 4 held on the
+reading side as well as the writing side, and `tools/almanactest.js` asserts
+exactly that pair. The one data change it needed: the generated plague
+disaster rows now carry the seed's damage kind in their tags, so Bloom of
+Glass finds Grit Lids.
+
+**The discovery record is write-only.** `census()` now also folds every living
+genome into `sim.seenTraits`, notes the year a trait or strain first showed up,
+and counts the map into `sim.biomeCount`; `startPlague` notes the year a
+disease was released. **Nothing in the tick may read any of it** - see the new
+invariant 13. If the tick ever branched on what the player had seen, a world
+where the almanac was opened would replay differently from one where it was
+not, and every save code in circulation would be quietly wrong. `census` costs
+1.3% of a run, unchanged.
+
+`sim.discovered` was deliberately left alone: it is the narrator's, it fires at
+a birth, and moving it would change which log lines appear and when.
+
+### Verified how
+
+- `tools/almanactest.js` - renders all five tabs twice (hidden and revealed)
+  against a played-out 220-year world: no NaN/undefined, tags balanced, the
+  first-seen years all inside the run, the biome census summing to exactly 3456
+  tiles, 10 undiscovered strains leaking none of their text and all 10
+  appearing when revealed, and fire naming Ashlung.
+- `determinism.js 260` and `savetest.js 240` - both still exact. This was the
+  thing most at risk and it is why they were run first.
+- `disastertest.js` - all 24 still fire without error after the tags change.
+- **Browser** at `tools/selftest.html`: no JS errors, all five tabs render
+  cards, numbers clean, the reveal button really re-renders (+1210 chars), and
+  the save round trip is still EXACT.
+- **Phone geometry measured, not eyeballed**, at 393x852: nothing overflows the
+  sheet on any tab. The five tabs do not fit one phone-width row, so they wrap
+  to two rather than scroll sideways where nobody would find them.
+- Screenshots of all five tabs at 1400x1000 and of the disasters tab at 393.
+
+### Still not verified
+
+Touch on a real device, as ever. And nobody has read the whole thing as a
+player yet - the wording is written for someone who has never seen the game,
+which is the case it needs to be right for, but that is a playtest question.

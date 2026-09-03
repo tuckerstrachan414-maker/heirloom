@@ -15,7 +15,7 @@
   <div id="logcard"><h2>The record</h2><div id="log"></div></div>
   <div id="tools"><div id="toolcats"></div><div id="disasters"></div><div id="hint"></div></div>
   <div id="sheet" class="hidden"><span id="sheetTitle"></span><button id="sheetClose"></button><div id="sheetBody"></div></div>
-  <button id="btnTree"></button><button id="btnSave"></button>
+  <button id="btnTree"></button><button id="btnSave"></button><button id="btnAlmanac"></button>
   <div id="toast"></div>
 </div>
 <script>
@@ -37,6 +37,7 @@ window.addEventListener('unhandledrejection', function(e){ window.__errors.push(
 <script src="../js/log.js"></script>
 <script src="../js/render.js"></script>
 <script src="../js/tree.js"></script>
+<script src="../js/almanac.js"></script>
 <script src="../js/save.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/main.js"></script>
@@ -166,6 +167,32 @@ setTimeout(function(){
     window.UI.closeSheet();
     return bars+' bars and '+lines+' split lines for '+S.species.length+' species, '+
       (dirty?'BAD NUMBERS IN SVG':'numbers clean')+', '+S.timeline.length+' disasters marked';
+  });
+  step('almanac     ',function(){
+    var out=[],dirty=0,empty=[];
+    for(var i=0;i<window.Almanac.TABS.length;i++){
+      var t=window.Almanac.TABS[i];
+      window.UI.showAlmanac(t.id);
+      var body=document.getElementById('sheetBody');
+      var cards=body.querySelectorAll('.alm').length;
+      var got=body.querySelectorAll('.alm.got').length;
+      var tabs=body.querySelectorAll('.almtab.on').length;
+      if(/NaN|undefined|Infinity/.test(body.innerHTML))dirty++;
+      if(!cards||tabs!==1)empty.push(t.id);
+      out.push(t.id+' '+got+'/'+cards);
+    }
+    // The reveal toggle has to be a real button that really re-renders.
+    window.UI.showAlmanac('strains');
+    var before=document.getElementById('sheetBody').innerHTML.length;
+    var rev=document.getElementById('almReveal');
+    if(rev)rev.click();
+    var after=document.getElementById('sheetBody').innerHTML.length;
+    if(document.getElementById('almReveal'))document.getElementById('almReveal').click();
+    window.UI.closeSheet();
+    return out.join(', ')+' found'+
+      (dirty?'  BAD NUMBERS on '+dirty+' tabs':'  numbers clean')+
+      (empty.length?'  EMPTY: '+empty.join(','):'')+
+      '  reveal '+(after>before?'grew the page by '+(after-before)+' chars':'DID NOTHING');
   });
   step('save sheet  ',function(){
     window.UI.showSave();

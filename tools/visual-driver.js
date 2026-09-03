@@ -34,6 +34,8 @@
       window.UI.selectSpecies(withStrain[0] || pick[0]);
     }
     if (/tree/.test(location.hash)) window.UI.showTree();
+    var alm = (location.hash.match(/almanac=([a-z]+)/) || [])[1];
+    if (alm || /almanac(?![=a-z])/.test(location.hash)) window.UI.showAlmanac(alm || 'traits');
     if (/savecode/.test(location.hash)) window.UI.showSave();
     G.setSpeed(/pause/.test(location.hash) ? 0 : 1);
     window.__ready = true;

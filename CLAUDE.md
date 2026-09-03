@@ -55,6 +55,8 @@ A hosted URL is the only thing that works there - that is why Pages exists.
     js/log.js           the log and the narrator
     js/render.js        terrain cache + trait-baked creature sprites + camera
     js/tree.js          the family tree, built as one flat SVG
+    js/almanac.js       the almanac: every registry rendered as a reference,
+                        plus what this world has actually shown the player
     js/save.js          save codes: seed + what you did, replayed on load
     js/ui.js            panels, species list, inspector, disaster buttons
     js/main.js          boot, frame loop, input
@@ -67,6 +69,7 @@ A hosted URL is the only thing that works there - that is why Pages exists.
     tools/plaguetest.js drops a plague on a grown world and follows the lineages
     tools/determinism.js  proves the same seed and schedule replays identically
     tools/savetest.js   plays a world, encodes it, replays it, compares everything
+    tools/almanactest.js renders every almanac tab and counts what it says
     tools/visual-driver.js  drives the real game for screenshots
 
 ## Invariants - do not break these
@@ -123,6 +126,21 @@ A hosted URL is the only thing that works there - that is why Pages exists.
     disaster completely. Habitat disasters (Deluge, Tsunami, Sea Rise) cull far
     less on purpose: they take ground rather than lives, and they exist to
     punish coastal specialists.
+
+13. **The almanac is a reader.** `sim.seenTraits`, `traitYear`, `seenStrains`,
+    `seenBiomes`, `biomeCount` and `seenPlagues` are written by `census()` and
+    `startPlague()` from state the sim already has, and are read only by
+    `js/almanac.js`. Nothing in the tick may branch on them - the moment it
+    does, a world that had the almanac open replays differently from one that
+    did not, and every save code is quietly wrong. `sim.discovered` is a
+    separate thing and belongs to the narrator: it decides which log line fires
+    at a birth, so leave it where it is.
+
+14. **What survives a disaster is derived, not written down.** The almanac
+    matches a disaster's `tags` against trait `resist` keys, which is why it
+    can say a wildfire selects for Ashlung while honouring invariant 4 - no
+    row anywhere names the other. Give a new disaster row honest `tags` and
+    the page fills itself in.
 
 ## Balance knobs
 
@@ -191,6 +209,7 @@ front loses strength each tile it spreads; below `FIRE_MIN` it dies. Raising
     node tools/plaguetest.js <base> <grow> <watch>     # follow a plague's lineages
     node tools/determinism.js <years>                  # same seed twice, compared
     node tools/savetest.js <years>                     # play, encode, replay, compare
+    node tools/almanactest.js <years>                  # renders every almanac tab
 
 `disastertest.js` takes about 90 seconds - run it in the background. It is the
 only thing that catches a disaster row that throws, does nothing, or wipes the
@@ -208,7 +227,8 @@ To rebuild the screenshot page:
 
 then open `_visual.html?r=1#y=90&fire&burn=2&pause`; other hash options are
 `every=<years>`, `cast=<disaster-id>`, `then=<years>`, `zoom`, `inspect`,
-`tree` and `savecode`. Hash-only URL changes do
+`tree`, `savecode` and `almanac=<tab>` (traits, strains, disasters, land,
+plagues). Hash-only URL changes do
 not reload the page - always bump the `?r=` query too.
 
 ## Environment notes
